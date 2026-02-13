@@ -1,5 +1,9 @@
 # HTAGravity
 
+<p align="center">
+  <img src="docs/assets/logo.png" width="300" alt="htagravity logo">
+</p>
+
 Here is a full rewrite of htag, using only antigravity and prompts.
 
 It feels very good. It's not a replacement, it's just a POC.

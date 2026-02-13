@@ -7,7 +7,7 @@ import inspect
 import logging
 from typing import Any, Dict, Optional, Union, List, Callable, Type, Set
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Response, Cookie
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from .core import GTag
 
 logger = logging.getLogger("htagravity")
@@ -132,7 +132,11 @@ class WebServer:
             return res
 
         @self.app.get("/favicon.ico")
+        @self.app.get("/logo.png")
         async def favicon():
+            logo_path = os.path.join(os.getcwd(), "docs/assets/logo.png")
+            if os.path.exists(logo_path):
+                return FileResponse(logo_path)
             return Response(status_code=204)
 
         @self.app.websocket("/ws")
@@ -179,6 +183,7 @@ class App(GTag):
         <html>
             <head>
                 <title>{self.__class__.__name__}</title>
+                <link rel="icon" type="image/png" href="/logo.png">
                 <script>{CLIENT_JS}</script>
                 {statics_html}
             </head>
