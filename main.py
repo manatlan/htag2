@@ -12,8 +12,9 @@ class App(Tag.App):
 
     def onclick(self, event):
         self += Tag.div(f"hello {event.target.a_var} {event}")
-
+        self += "hello"
         yield
+        self += "hello2"
 
         event.target.a_var += 1
         event.target._style = "color:red"
