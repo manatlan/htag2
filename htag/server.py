@@ -1,12 +1,9 @@
 import asyncio
 import json
-import subprocess
 import os
 import threading
-import time
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
-import uvicorn
 import logging
 import inspect
 from .core import GTag
@@ -78,81 +75,12 @@ function htag_event(id, event_name, event) {
 }
 """
 
-# --- Runners ---
-
-class BaseRunner:
-    """Base class for all runners that execute an App."""
-    def __init__(self, app: "App"):
-        self.app = app
-
-    def run(self, host="127.0.0.1", port=8000):
-        """Must be implemented by subclasses to start the server/UI."""
-        raise NotImplementedError()
-
-class ChromeApp(BaseRunner):
-    """
-    Executes an App in a Chrome/Chromium kiosk window.
-    Features auto-cleanup of temporary browser profiles.
-    """
-    def __init__(self, app: "App", kiosk=True, width=800, height=600):
-        super().__init__(app)
-        self.kiosk = kiosk
-        self.width = width
-        self.height = height
-
-    def run(self, host="127.0.0.1", port=8000):
-        if self.kiosk:
-            def launch():
-                time.sleep(1)  # Give the server a second to start
-                
-                import tempfile
-                import shutil
-                import atexit
-                tmp_dir = tempfile.mkdtemp(prefix="htagravity_")
-                
-                def cleanup():
-                    try:
-                        shutil.rmtree(tmp_dir)
-                        logger.info("Cleaned up temporary browser profile: %s", tmp_dir)
-                    except:
-                        pass
-                
-                atexit.register(cleanup)
-                # Store cleanup in app if needed (though runner handles it via atexit)
-                self.app._browser_cleanup = cleanup
-                
-                browsers = ["google-chrome", "chromium-browser", "chromium", "chrome"]
-                found = False
-                
-                for browser in browsers:
-                    try:
-                        subprocess.Popen([
-                            browser, 
-                            f"--app=http://{host}:{port}", 
-                            f"--window-size={self.width},{self.height}",
-                            f"--user-data-dir={tmp_dir}",
-                            "--no-first-run",
-                            "--no-default-browser-check"
-                        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                        logger.info("Launched %s with window size %dx%d", browser, self.width, self.height)
-                        found = True
-                        break
-                    except FileNotFoundError:
-                        continue
-                    except Exception as e:
-                        logger.error("Error launching %s: %s", browser, e)
-                        continue
-                
-                if not found:
-                    logger.warning("Could not launch any browser (tried: %s)", ", ".join(browsers))
-
-            threading.Thread(target=launch, daemon=True).start()
-
-        uvicorn.run(self.app.app, host=host, port=port)
+# --- App ---
 
 class App(GTag):
     def __init__(self, *args, **kwargs):
         super().__init__("body", *args, **kwargs)
+        self.exit_on_disconnect = True # Default behavior
         self.app = FastAPI()
         self.websockets = set()
         self.sent_statics = set() # Track assets already in browser
@@ -206,12 +134,15 @@ class App(GTag):
                 self.websockets.remove(websocket)
                 logger.info("WebSocket disconnected (Total clients: %d)", len(self.websockets))
                 if not self.websockets:
-                    # Exit when last browser window is closed
-                    logger.info("Last client disconnected, exiting...")
-                    # Manual cleanup before os._exit(0) because it skips atexit handlers
-                    if hasattr(self, "_browser_cleanup"):
-                        self._browser_cleanup()
-                    os._exit(0)
+                    # Exit when last browser window is closed, IF enabled
+                    if self.exit_on_disconnect:
+                        logger.info("Last client disconnected, exiting...")
+                        # Manual cleanup before os._exit(0) because it skips atexit handlers
+                        if hasattr(self, "_browser_cleanup"):
+                            self._browser_cleanup()
+                        os._exit(0)
+                    else:
+                        logger.info("Last client disconnected (server stays alive)")
 
     def render_initial(self):
         # Initial render of the page (body)
