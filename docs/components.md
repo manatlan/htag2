@@ -8,7 +8,7 @@ Components are the building blocks of an `htag` application. Every visual elemen
 
 ### Creating a Component
 
-You can create a custom component by subclassing `Tag.div`:
+You can create a custom component by subclassing `Tag.div`, for example:
 
 ```python
 from htag import Tag
