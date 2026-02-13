@@ -21,21 +21,40 @@ class MyComponent(GTag):
         self.add(f"Hello {name}!")
 ```
 
-### Attributes and Style
-
-Attributes are managed using properties starting with an underscore:
-
-```python
-btn = Tag.button("Click", _class="primary", _id="main-btn", _style="color: blue")
-btn._class = "secondary"  # Updates are reactive
-```
-
 ### Tree Manipulation
 
 - `self.add(*content)`: Adds children (strings or other GTags).
+- `self += content`: An elegant shorthand for `self.add(content)`.
 - `self.remove(child)`: Removes a child.
 - `self.clear()`: Removes all children.
 - `self.remove_self()`: Removes the component from its parent.
+
+```python
+# Using the += operator
+row = Tag.div()
+row += Tag.span("Left")
+row += Tag.span("Right")
+```
+
+## Attributes and Style
+
+Attributes are managed using properties starting with an underscore. This mapping covers all standard and custom HTML attributes.
+
+```python
+# Mapping attributes
+img = Tag.img(_src="logo.png", _alt="Logo")
+img._width = "100"
+
+# Custom data attributes
+div = Tag.div(_data_user_id="123")
+```
+
+- `_class`: Maps to the `class` attribute.
+- `_id`: Maps to the `id` attribute.
+- `_style`: Maps to the `style` attribute.
+- `_any_thing`: Maps to `any-thing` in the rendered HTML.
+
+---
 
 ## The Tag Creator
 

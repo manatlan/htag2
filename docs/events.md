@@ -22,6 +22,22 @@ The `e` argument passed to the callback is an `Event` object containing:
 - `e.name`: The name of the event (e.g., "click").
 - Data attributes like `e.value` (for inputs), `e.x`, `e.y` (for mouse events), etc.
 
+## Automatic Binding (Magic Bind)
+
+`htag` automatically synchronizes the state of input elements without requiring explicit event handlers.
+
+When you use an `<input>`, `<textarea>`, or `<select>`, `htag` injects an `oninput` event that updates the component's `_value` attribute in real-time on the server.
+
+```python
+class MyForm(App):
+    def __init__(self):
+        super().__init__()
+        # No 'oninput' needed, it's automatic!
+        self.entry = Tag.input(_value="Initial")
+        self += self.entry
+        self += Tag.button("Show", onclick=lambda e: self.add(f"Value is: {self.entry._value}"))
+```
+
 ## Async Handlers
 
 `htag` fully supports `asyncio`. You can define callbacks as `async def`:

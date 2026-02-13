@@ -35,6 +35,7 @@ nav:
   - Components: components.md
   - Events: events.md
   - Runners: runners.md
+  - Deployment: deployment.md
   - Advanced: advanced.md
 
 markdown_extensions:
