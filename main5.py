@@ -117,11 +117,12 @@ class Modal(Tag.div):
     """A full-screen modal dialog component."""
     def __init__(self, title, content, **kwargs):
         super().__init__(**kwargs)
-        self._class = "fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-black bg-opacity-50"
+        self._class = "fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black bg-opacity-50"
+        self._style = "display: none;"
         self._onclick = self.hide # Close on overlay click
         
         # The dialog box (prevent closing when clicking inside)
-        self.dialog = Tag.div(_class="bg-white rounded-xl shadow-2xl max-w-lg w-full transform transition-all duration-300 scale-95 opacity-0", _onclick="event.stopPropagation()")
+        self.dialog = Tag.div(_class="bg-white rounded-xl shadow-2xl max-w-lg w-full", _onclick="event.stopPropagation()")
         
         # Header
         header = Tag.div(_class="flex items-center justify-between p-4 border-b")
@@ -142,25 +143,10 @@ class Modal(Tag.div):
         self += self.dialog
 
     def show(self, event=None):
-        self.remove_class("hidden")
-        self.call_js("""
-            let el = document.getElementById('%s');
-            el.classList.remove('hidden');
-            let dialog = el.querySelector('.bg-white');
-            setTimeout(() => {
-                dialog.classList.remove('scale-95', 'opacity-0');
-                dialog.classList.add('scale-100', 'opacity-100');
-            }, 10);
-        """ % self.id)
+        self._style = "display: flex;"
 
     def hide(self, event=None):
-        self.call_js("""
-            let el = document.getElementById('%s');
-            let dialog = el.querySelector('.bg-white');
-            dialog.classList.remove('scale-100', 'opacity-100');
-            dialog.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => el.classList.add('hidden'), 300);
-        """ % self.id)
+        self._style = "display: none;"
 
 class Input(Tag.input):
     """A styled text input component."""
@@ -365,11 +351,12 @@ class MessageBox(Tag.div):
             )
         # Modal backdrop (fixed full screen, gray overlay with opacity, flex centering)
         # We start hidden: display: none
-        self._class = "fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto outline-none focus:outline-none bg-gray-900 bg-opacity-50 transition-opacity"
+        self._class = "fixed inset-0 z-[100] flex items-center justify-center overflow-x-hidden overflow-y-auto outline-none focus:outline-none bg-gray-900 bg-opacity-50"
         self._style = "display: none;"
+        self._onclick = self.close_modal
         
         # Modal Dialog Core
-        dialog = Tag.div(_class="relative w-full max-w-md p-4 md:h-auto")
+        dialog = Tag.div(_class="relative w-full max-w-md p-4 md:h-auto", _onclick="event.stopPropagation()")
         self += dialog
         
         # Modal Content
