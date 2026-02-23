@@ -7,7 +7,7 @@ import inspect
 import logging
 from typing import Any, Dict, Optional, Union, List, Callable, Type, Set
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Response, Cookie
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse
 from .core import GTag
 
 logger = logging.getLogger("htagravity")
@@ -33,11 +33,38 @@ class Event:
 
 CLIENT_JS = """
 // The client-side bridge that connects the browser to the Python server.
-var ws = new WebSocket("ws://" + window.location.host + "/ws");
+var ws;
+var use_fallback = false;
+var sse;
 window._htag_callbacks = {}; // Store promise resolvers
 
-ws.onmessage = function(event) {
-    var data = JSON.parse(event.data);
+function init_ws() {
+    ws = new WebSocket("ws://" + window.location.host + "/ws");
+    
+    ws.onopen = function() {
+        console.log("htag: websocket connected");
+    };
+
+    ws.onmessage = function(event) {
+        var data = JSON.parse(event.data);
+        handle_payload(data);
+    };
+
+    ws.onerror = function(err) {
+        console.warn("htag: websocket error, switching to HTTP fallback (SSE)", err);
+        fallback();
+    };
+
+    ws.onclose = function(event) {
+        // If it closes abnormally or very quickly, trigger fallback
+        if (event.code !== 1000 && event.code !== 1001) {
+             console.warn("htag: websocket closed unexpectedly, switching to HTTP fallback (SSE)", event);
+             fallback();
+        }
+    };
+}
+
+function handle_payload(data) {
     if(data.action == "update") {
         // Apply partial DOM updates received from the server
         for(var id in data.updates) {
@@ -65,7 +92,25 @@ ws.onmessage = function(event) {
             delete window._htag_callbacks[data.callback_id];
         }
     }
-};
+}
+
+function fallback() {
+    if (use_fallback) return; 
+    use_fallback = true;
+    if(ws) ws.close(); // Ensure ws is torn down
+    
+    sse = new window.EventSource("/stream");
+    sse.onmessage = function(event) {
+        handle_payload(JSON.parse(event.data));
+    };
+    sse.onerror = function(err) {
+        console.error("htag: SSE error", err);
+    };
+}
+
+// Start with WebSockets
+init_ws();
+
 // Function called by HTML 'on{event}' attributes to send interactions back to Python
 // Returns a Promise that resolves with the server's return value.
 function htag_event(id, event_name, event) {
@@ -88,7 +133,21 @@ function htag_event(id, event_name, event) {
         pageY: event.pageY,
         callback_id: callback_id
     };
-    ws.send(JSON.stringify({id: id, event: event_name, data: data}));
+    var payload = {id: id, event: event_name, data: data};
+    
+    if(!use_fallback && ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(payload));
+    } else {
+        // Use HTTP POST Fallback
+        // (Fastest trigger even if SSE is still initializing)
+        if (!use_fallback) fallback();
+        fetch("/event", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(payload)
+        }).catch(err => console.error("htag event POST error:", err));
+    }
+
     return new Promise(resolve => {
         window._htag_callbacks[callback_id] = resolve;
     });
@@ -162,6 +221,30 @@ class WebServer:
             else:
                 await websocket.close()
 
+        @self.app.get("/stream")
+        async def stream_endpoint(request: Request, htag_sid: Optional[str] = Cookie(None)):
+            if not htag_sid:
+                return Response(status_code=400, content="No session cookie")
+                
+            instance = self._get_instance(htag_sid)
+            return StreamingResponse(instance._handle_sse(request), media_type="text/event-stream")
+
+        @self.app.post("/event")
+        async def event_endpoint(request: Request, htag_sid: Optional[str] = Cookie(None)):
+            if not htag_sid:
+                return Response(status_code=400, content="No session cookie")
+                
+            instance = self._get_instance(htag_sid)
+            try:
+                msg = await request.json()
+                # Run the event in the background to not block the HTTP response
+                # Broadcast will trigger async queues anyway
+                asyncio.create_task(instance.handle_event(msg, None))
+                return {"status": "ok"}
+            except Exception as e:
+                logger.error("POST event error: %s", e)
+                return Response(status_code=500, content=str(e))
+
 # --- App ---
 
 class App(GTag):
@@ -175,6 +258,7 @@ class App(GTag):
         super().__init__("body", *args, **kwargs)
         self.exit_on_disconnect: bool = True # Default behavior
         self.websockets: Set[WebSocket] = set()
+        self.sse_queues: Set[asyncio.Queue] = set() # Queues for active SSE connections
         self.sent_statics: Set[str] = set() # Track assets already in browser
 
     @property
@@ -207,10 +291,45 @@ class App(GTag):
         return html_content
 
 
+    async def _handle_sse(self, request: Request):
+        queue = asyncio.Queue()
+        self.sse_queues.add(queue)
+        logger.info("New SSE connection (Total clients: %d)", len(self.sse_queues))
+        
+        # Send initial state
+        try:
+            updates = {self.id: self.render_initial()}
+            js = []
+            self.collect_updates(self, {}, js)
+            
+            payload = json.dumps({
+                "action": "update",
+                "updates": updates,
+                "js": js
+            })
+            # EventSource requires 'data: {payload}\n\n'
+            yield f"data: {payload}\n\n"
+        except Exception as e:
+            logger.error("Failed to send initial SSE state: %s", e)
+
+        try:
+            while True:
+                # Wait for next broadcast payload or client disconnect
+                message = await queue.get()
+                yield f"data: {message}\n\n"
+        except asyncio.CancelledError: # Raised when client disconnects
+            pass
+        except Exception as e:
+            logger.error("SSE stream error: %s", e)
+        finally:
+            self.sse_queues.discard(queue)
+            logger.info("SSE disconnected (Total clients: %d)", len(self.sse_queues))
+            await self._handle_disconnect()
+
     async def _handle_websocket(self, websocket: WebSocket) -> None:
         await websocket.accept()
         self.websockets.add(websocket)
-        logger.info("New WebSocket connection (Total clients: %d)", len(self.websockets))
+        logger.info("New WebSocket connection (Total WS clients: %d)", len(self.websockets))
         
         # Send initial state on connection/reconnection
         try:
@@ -237,37 +356,42 @@ class App(GTag):
         finally:
             if websocket in self.websockets:
                 self.websockets.discard(websocket)
-            logger.info("WebSocket disconnected (Total clients: %d)", len(self.websockets))
+            logger.info("WebSocket disconnected (Total WS clients: %d)", len(self.websockets))
+            await self._handle_disconnect()
+
+    async def _handle_disconnect(self) -> None:
+        """Centralized disconnect handler to manage graceful shutdown across WS and SSE"""
+        if self.websockets or self.sse_queues:
+            return # Still active clients (WS or SSE)
+
+        # Exit when last browser window is closed, IF enabled
+        if self.exit_on_disconnect:
+            # Give it a small delay in case of F5 / Page Refresh
+            await asyncio.sleep(0.5)
             
-            if not self.websockets:
-                # Exit when last browser window is closed, IF enabled
-                if self.exit_on_disconnect:
-                    # Give it a small delay in case of F5 / Page Refresh
-                    await asyncio.sleep(0.5)
-                    
-                    # Check again if a client reconnected during the delay
-                    if self.websockets:
-                        logger.info("Client reconnected quickly, aborting exit (likely F5)")
-                        return
-                        
-                    # Session-aware exit: only exit if NO other session has active websockets
-                    other_active = False
-                    if hasattr(self, "_webserver") and len(self._webserver.instances) > 1:
-                        webserver: WebServer = getattr(self, "_webserver")
-                        for sid, inst in webserver.instances.items():
-                            if inst is not self and inst.websockets:
-                                other_active = True
-                                break
-                    
-                    if not other_active:
-                        logger.info("Last client of the last active session disconnected, exiting...")
-                        if hasattr(self, "_browser_cleanup"):
-                            self._browser_cleanup()
-                        os._exit(0)
-                    else:
-                        logger.info("Session disconnected, but other sessions are still active.")
-                else:
-                    logger.info("Last client disconnected (server stays alive)")
+            # Check again if a client reconnects during the delay
+            if self.websockets or self.sse_queues:
+                logger.info("Client reconnected quickly, aborting exit (likely F5)")
+                return
+                
+            # Session-aware exit: only exit if NO other session has active connections
+            other_active = False
+            if hasattr(self, "_webserver") and len(self._webserver.instances) > 1:
+                webserver = getattr(self, "_webserver")
+                for sid, inst in webserver.instances.items():
+                    if inst is not self and (inst.websockets or inst.sse_queues):
+                        other_active = True
+                        break
+            
+            if not other_active:
+                logger.info("Last client of the last active session disconnected, exiting...")
+                if hasattr(self, "_browser_cleanup"):
+                    self._browser_cleanup()
+                os._exit(0)
+            else:
+                logger.info("Session disconnected, but other sessions are still active.")
+        else:
+            logger.info("Last client disconnected (server stays alive)")
 
     def render_initial(self) -> str:
         # Initial render of the page (body)
@@ -311,7 +435,7 @@ class App(GTag):
             if isinstance(child, GTag):
                 self.collect_statics(child, result)
 
-    async def handle_event(self, msg: Dict[str, Any], ws: WebSocket) -> None:
+    async def handle_event(self, msg: Dict[str, Any], ws: Optional[WebSocket]) -> None:
         tag_id = msg.get("id")
         event_name = msg.get("event")
         
@@ -353,13 +477,24 @@ class App(GTag):
                     error_msg = f"Error in {event_name} callback: {str(e)}\\n{traceback.format_exc()}"
                     logger.error(error_msg)
                     # Use broadcast-like update for error reporting
-                    await ws.send_text(json.dumps({
+                    err_payload = json.dumps({
                         "action": "update",
                         "updates": {},
                         "js": [f"console.error({repr(error_msg)})"],
                         "callback_id": callback_id,
                         "result": None
-                    }))
+                    })
+                    
+                    if ws:
+                        try:
+                            await ws.send_text(err_payload)
+                        except Exception:
+                            pass
+                    else:
+                        # Fallback Mode: Trigger error broadcast through SSE
+                        for queue in self.sse_queues:
+                            queue.put_nowait(err_payload)
+                            
                     return
             else:
                 res = None
@@ -403,14 +538,20 @@ class App(GTag):
                          list(updates.keys()), len(js_calls), result if callback_id else "n/a")
             
             payload = json.dumps(data)
-            dead: List[WebSocket] = []
+            
+            # Send to websocket clients
+            dead_ws: List[WebSocket] = []
             for client in list(self.websockets):
                 try:
                     await client.send_text(payload)
                 except Exception:
-                    dead.append(client)
-            for client in dead:
+                    dead_ws.append(client)
+            for client in dead_ws:
                 self.websockets.discard(client)
+                
+            # Send to SSE clients
+            for queue in self.sse_queues:
+                queue.put_nowait(payload)
 
     def render_tag(self, tag: GTag) -> str:
         """
