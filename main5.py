@@ -76,6 +76,92 @@ class Alert(Tag.div):
             
         self += message
 
+class Toast(Tag.div):
+    """A client-side self-closing toast component."""
+    def __init__(self, message, variant="info", **kwargs):
+        super().__init__(**kwargs)
+        
+        # Mapping variants to Tailwind colors
+        colors = {
+            "success": "text-green-800 bg-green-50 border-green-200",
+            "error": "text-red-800 bg-red-50 border-red-200",
+            "warning": "text-yellow-800 bg-yellow-50 border-yellow-200",
+            "info": "text-blue-800 bg-blue-50 border-blue-200"
+        }
+        variant_classes = colors.get(variant, colors["info"])
+        
+        # Initial classes (invisible and translated)
+        self._class = f"p-4 mb-4 text-sm rounded-lg border shadow-xl transform transition-all duration-300 translate-y-2 opacity-0 {variant_classes}"
+        self += message
+        
+        # Self-contained JS for animations and removal (using call_js for execution)
+        self.call_js("""
+            var el = document.getElementById('%s');
+            if(el) {
+                // Animate in
+                setTimeout(() => {
+                    el.classList.remove('translate-y-2', 'opacity-0');
+                    el.classList.add('translate-y-0', 'opacity-100');
+                }, 10);
+
+                // Animate out and remove
+                setTimeout(() => {
+                    el.classList.remove('translate-y-0', 'opacity-100');
+                    el.classList.add('translate-y-2', 'opacity-0');
+                    setTimeout(() => el.remove(), 300);
+                }, 3000);
+            }
+        """ % self.id)
+
+class Modal(Tag.div):
+    """A full-screen modal dialog component."""
+    def __init__(self, title, content, **kwargs):
+        super().__init__(**kwargs)
+        self._class = "fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-black bg-opacity-50"
+        self._onclick = self.hide # Close on overlay click
+        
+        # The dialog box (prevent closing when clicking inside)
+        self.dialog = Tag.div(_class="bg-white rounded-xl shadow-2xl max-w-lg w-full transform transition-all duration-300 scale-95 opacity-0", _onclick="event.stopPropagation()")
+        
+        # Header
+        header = Tag.div(_class="flex items-center justify-between p-4 border-b")
+        header += Tag.h3(title, _class="text-xl font-semibold text-gray-900")
+        
+        close_btn = Tag.button(_class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center")
+        close_btn._onclick = self.hide
+        close_btn += Tag.span("×", _class="text-2xl leading-none")
+        header += close_btn
+        
+        self.dialog += header
+        
+        # Content
+        body = Tag.div(_class="p-6")
+        body += content
+        self.dialog += body
+        
+        self += self.dialog
+
+    def show(self, event=None):
+        self.remove_class("hidden")
+        self.call_js("""
+            let el = document.getElementById('%s');
+            el.classList.remove('hidden');
+            let dialog = el.querySelector('.bg-white');
+            setTimeout(() => {
+                dialog.classList.remove('scale-95', 'opacity-0');
+                dialog.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        """ % self.id)
+
+    def hide(self, event=None):
+        self.call_js("""
+            let el = document.getElementById('%s');
+            let dialog = el.querySelector('.bg-white');
+            dialog.classList.remove('scale-100', 'opacity-100');
+            dialog.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => el.classList.add('hidden'), 300);
+        """ % self.id)
+
 class Input(Tag.input):
     """A styled text input component."""
     def __init__(self, placeholder="", **kwargs):
@@ -503,14 +589,27 @@ class DemoApp(Tag.App):
         dialog_group = Tag.div(_class="flex gap-4 p-4 items-center justify-center")
         dialog_group += Button("Show Info Modal", "primary", _onclick=lambda e: self.info_modal.open_modal())
         dialog_group += Button("Show Danger Modal", "danger", _onclick=lambda e: self.danger_modal.open_modal())
+        dialog_group += Button("Show Advanced Modal", "info", _onclick=lambda e: self.advanced_modal.show())
         dialog_card.add(dialog_group)
         grid += dialog_card
         
         # Initialize Modals (attached to main container, but hidden)
         self.info_modal = MessageBox("Nouvelle Fonctionnalité", "Les boîtes de dialogue modales sont maintenant disponibles en htag avec Tailwind CSS !", type="info")
         self.danger_modal = MessageBox("Action Irréversible", "Êtes-vous sûr de vouloir supprimer cet élément ? Cette action ne peut pas être annulée.", type="danger")
+        
+        self.advanced_modal = Modal("Composant Modal Avancé", Tag.div(
+            Tag.p("Ce modal est plus générique. Vous pouvez y mettre n'importe quel contenu htag.", _class="text-gray-600 mb-4"),
+            Tag.div(
+                Tag.p("C'est une div imbriquée avec ses propres styles.", _class="text-sm text-blue-800 mb-2"),
+                Tag.div(_class="flex gap-2").add(Badge("Info", "blue"), Badge("Nouveau", "green")),
+                _class="bg-blue-50 p-4 rounded-lg border border-blue-100"
+            ),
+            Button("Fermer ce modal", variant="secondary", _class="mt-6 w-full", _onclick=lambda e: self.advanced_modal.hide())
+        ))
+        
         container += self.info_modal
         container += self.danger_modal
+        container += self.advanced_modal
 
         # --- Card 6: Utils (Progress & Code) ---
         utils_card = Card(title="Utilities & Feedback", _class="md:col-span-2")
@@ -612,18 +711,8 @@ class DemoApp(Tag.App):
         grid += new_card
 
     # --- Actions (Event Handlers) ---
-    async def fire_toast(self, message, variant="success"):
-        # Create a tiny toast
-        toast = Alert(message, variant=variant, _class="shadow-xl transform transition-all duration-300 translate-y-0 opacity-100")
-        self.toaster += toast
-        yield
-        
-        await asyncio.sleep(3)
-        toast._class = "shadow-xl transform transition-all duration-300 translate-y-2 opacity-0"
-        yield
-        
-        await asyncio.sleep(0.3)
-        toast.remove_self()
+    def fire_toast(self, message, variant="success"):
+        self.toaster += Toast(message, variant)
     def on_type(self, event):
         # We read the value either from event context or directly from the synced input component
         val = event.value
