@@ -132,8 +132,7 @@ class Sudoku(Tag.App):
         """)
     ]
 
-    def __init__(self):
-        super().__init__()
+    def init(self):
         self.selected = None
         self.new_game()
 

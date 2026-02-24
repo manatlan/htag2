@@ -56,8 +56,8 @@ class Explorer(Tag.div):
         """)
     ]
 
-    def __init__(self, path, selected_file, select_callback):
-        super().__init__(_class="explorer")
+    def init(self, path, selected_file, select_callback):
+        self._class="explorer"
         self.path = path
         self.selected_file = selected_file
         self.select_callback = select_callback
@@ -160,8 +160,8 @@ class Viewer(Tag.div):
         """)
     ]
 
-    def __init__(self, file_path, close_callback):
-        super().__init__(_class="preview-panel")
+    def init(self, file_path, close_callback):
+        self._class="preview-panel"
         self.file_path = file_path
         self.close_callback = close_callback
         self.render()
