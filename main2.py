@@ -10,8 +10,8 @@ class MessageBox(Tag.div):
         .msgbox-text { margin-bottom: 30px; color: #4a5568; font-size: 1.1rem; line-height: 1.6; }
     """)]
     
-    def __init__(self, title, message):
-        super().__init__(_class="msgbox-overlay")
+    def init(self, title, message):
+        self._class="msgbox-overlay"
         box = Tag.div(_class="msgbox-card")
         self += box
         box += Tag.h2(title, _class="msgbox-title")
@@ -49,8 +49,7 @@ class MyApp(Tag.App):
         """)
     ]
 
-    def __init__(self):
-        super().__init__()
+    def init(self):
         self.data = [
             {"name": "Alice Cooper", "age": 75},
             {"name": "Bob Marley", "age": 36}

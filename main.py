@@ -1,12 +1,10 @@
 from htag import Tag, prevent
 import logging
 
-# logging.basicConfig(level=logging.INFO)
 
 class MyApp(Tag.App):
-    def init(self, *args, **kwargs):
+    def init(self):
         b = Tag.button("add", _onclick=self.onclick, _oncontextmenu=self.onmenu, _style="color:green")
-        super().init(*args, **kwargs)
         b.a_var=42
         self += b
 
