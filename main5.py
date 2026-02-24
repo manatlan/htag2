@@ -157,11 +157,10 @@ class Input(Tag.input):
 
 class Toggle(Tag.label):
     """A modern toggle switch component."""
-    def __init__(self, label_text, **kwargs):
+    def init(self, label_text, **kwargs):
         # Extract the onchange event from kwargs for the inner checkbox if it exists
         onchange = kwargs.pop("_onchange", kwargs.pop("onchange", None))
         
-        super().__init__(**kwargs)
         self._class = "relative inline-flex items-center cursor-pointer"
         
         # The hidden checkbox is what stores the state
