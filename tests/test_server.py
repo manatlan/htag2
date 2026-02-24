@@ -236,10 +236,12 @@ def test_render_tag_special_cases():
     from htag.server import App
     app = App()
     
-    # input auto-injection
+    # Ensure the auto-injected oninput is there
     inp = Tag.input()
-    app.render_tag(inp)
-    assert "oninput" in inp._attrs
+    app += inp
+    app.render_initial()
+    assert "oninput" in inp._GTag__attrs
+    assert "htag_event" in inp._GTag__attrs["oninput"]
     
     # prevent/stop decorators
     from htag import prevent, stop

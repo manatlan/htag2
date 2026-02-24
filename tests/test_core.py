@@ -42,12 +42,12 @@ def test_gtag_clear():
 def test_gtag_attr_magic():
     t = GTag("div", _class="foo", _data_id="123")
     assert t._class == "foo"
-    assert t._attrs["class"] == "foo"
-    assert t._attrs["data_id"] == "123"
+    assert t._GTag__attrs["class"] == "foo"
+    assert t._GTag__attrs["data_id"] == "123"
     assert t.id is not None
     
     t._class = "bar"
-    assert t._attrs["class"] == "bar"
+    assert t._GTag__attrs["class"] == "bar"
     assert t._GTag__dirty is True
     
     # Test line 103: regular python attribute
@@ -57,7 +57,7 @@ def test_gtag_attr_magic():
     # Test line 96: event setter
     def other_h(e): pass
     t._onmouseover = other_h
-    assert "mouseover" in t._events
+    assert "mouseover" in t._GTag__events
 
 def test_gtag_render_attrs():
     t = GTag("div", _class="foo", _data_id="123")
@@ -69,8 +69,8 @@ def test_gtag_render_attrs():
 def test_gtag_events():
     def my_handler(e): pass
     t = GTag("button", _onclick=my_handler)
-    assert "click" in t._events
-    assert t._events["click"] == my_handler
+    assert "click" in t._GTag__events
+    assert t._GTag__events["click"] == my_handler
 
 def test_tag_creator():
     MyDiv = Tag.Div
@@ -150,7 +150,7 @@ def test_gtag_add_list():
 def test_gtag_call_js():
     t = GTag("div")
     t.call_js("alert(1)")
-    assert "alert(1)" in t._js_calls
+    assert "alert(1)" in t._GTag__js_calls
 
 def test_gtag_remove_self():
     parent = GTag("div")

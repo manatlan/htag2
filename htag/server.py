@@ -413,10 +413,10 @@ class App(GTag):
                     # If the tag was already added to updates, we don't need its partial HTML,
                     # but we ALWAYS need its JS calls.
                     self.collect_updates(child, updates, js_calls)
-            
-            if tag._js_calls:
-                js_calls.extend(tag._js_calls)
-                tag._js_calls = []
+            # Extract and clear JS calls
+            if getattr(tag, "_GTag__js_calls", []):
+                js_calls.extend(tag._GTag__js_calls)
+                tag._GTag__js_calls = []
 
     def collect_statics(self, tag: GTag, result: List[str]) -> None:
         # Collect statics from class and instance
@@ -448,11 +448,11 @@ class App(GTag):
             # Auto-sync value from client (bypass __setattr__ to avoid re-rendering the input while typing)
             if "value" in msg.get("data", {}):
                 with target_tag._GTag__lock:
-                    target_tag._attrs["value"] = msg["data"]["value"]
+                    target_tag._GTag__attrs["value"] = msg["data"]["value"]
 
-            if event_name in target_tag._events:
+            if event_name in target_tag._GTag__events:
                 logger.info("Event '%s' on tag %s (id: %s)", event_name, target_tag.tag, target_tag.id)
-                callback = target_tag._events[event_name]
+                callback = target_tag._GTag__events[event_name]
                 event = Event(target_tag, msg)
                 try:
                     if asyncio.iscoroutinefunction(callback):
@@ -474,7 +474,7 @@ class App(GTag):
                             res = e.value # This is the return value of the generator
                 except Exception as e:
                     import traceback
-                    error_msg = f"Error in {event_name} callback: {str(e)}\\n{traceback.format_exc()}"
+                    error_msg = f"Error in {event_name} callback: {str(e)}\n{traceback.format_exc()}"
                     logger.error(error_msg)
                     # Use broadcast-like update for error reporting
                     err_payload = json.dumps({
@@ -563,8 +563,8 @@ class App(GTag):
             if isinstance(t, GTag):
                 with t._GTag__lock:
                     # Auto-inject oninput for inputs if not already there, to support auto-binding
-                    if t.tag in ["input", "textarea", "select"] and "input" not in t._events:
-                        t._attrs["oninput"] = f"htag_event('{t.id}', 'input', event)"
+                    if t.tag in ["input", "textarea", "select"] and "input" not in t._GTag__events:
+                        t._GTag__attrs["oninput"] = f"htag_event('{t.id}', 'input', event)"
                     # Only clear dirty flag for objects that have it
                     if hasattr(t, "_GTag__dirty"):
                         t._GTag__dirty = False # Clear dirty flag after rendering
