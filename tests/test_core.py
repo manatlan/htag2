@@ -3,15 +3,15 @@ from htag.core import GTag, Tag, prevent, stop
 def test_gtag_init():
     t = GTag("div", "hello")
     assert t.tag == "div"
-    assert "hello" in t._childs
+    assert "hello" in t.childs
     assert t.id is not None
-    assert t._dirty is True
+    assert t._GTag__dirty is True
 
 def test_gtag_fallback_tag():
     # If first arg is a string and no tag defined, it becomes the tag
     t = GTag("my-custom-tag", "hello")
     assert t.tag == "my-custom-tag"
-    assert "hello" in t._childs
+    assert "hello" in t.childs
     
     # Test line 48: div fallback if no args at all
     t2 = GTag()
@@ -20,24 +20,24 @@ def test_gtag_fallback_tag():
 def test_gtag_add_remove():
     t = GTag("div")
     child = GTag("span")
-    t._dirty = False
+    t._GTag__dirty = False
     t.add(child)
-    assert child in t._childs
+    assert child in t.childs
     assert child.parent == t
-    assert t._dirty is True
+    assert t._GTag__dirty is True
     
-    t._dirty = False
+    t._GTag__dirty = False
     t.remove(child)
-    assert child not in t._childs
+    assert child not in t.childs
     assert child.parent is None
-    assert t._dirty is True
+    assert t._GTag__dirty is True
 
 def test_gtag_clear():
     t = GTag("div", "one", "two")
-    t._dirty = False
+    t._GTag__dirty = False
     t.clear()
-    assert len(t._childs) == 0
-    assert t._dirty is True
+    assert len(t.childs) == 0
+    assert t._GTag__dirty is True
 
 def test_gtag_attr_magic():
     t = GTag("div", _class="foo", _data_id="123")
@@ -48,7 +48,7 @@ def test_gtag_attr_magic():
     
     t._class = "bar"
     assert t._attrs["class"] == "bar"
-    assert t._dirty is True
+    assert t._GTag__dirty is True
     
     # Test line 103: regular python attribute
     t.some_var = 42
@@ -139,13 +139,13 @@ def test_add_class():
 def test_gtag_iadd():
     t = GTag("div")
     t += "hello"
-    assert "hello" in t._childs
+    assert "hello" in t.childs
 
 def test_gtag_add_list():
     t = GTag("div")
     t.add(["a", "b"])
-    assert "a" in t._childs
-    assert "b" in t._childs
+    assert "a" in t.childs
+    assert "b" in t.childs
 
 def test_gtag_call_js():
     t = GTag("div")
@@ -157,17 +157,17 @@ def test_gtag_remove_self():
     child = GTag("span")
     parent.add(child)
     child.remove_self()
-    assert child not in parent._childs
+    assert child not in parent.childs
     assert child.parent is None
 
 def test_gtag_le():
     t = GTag("div")
     t <= "hello"
-    assert "hello" in t._childs
+    assert "hello" in t.childs
     
     child = GTag("span")
     t <= child
-    assert child in t._childs
+    assert child in t.childs
     assert child.parent == t
 
 def test_gtag_root():

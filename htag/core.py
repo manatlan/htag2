@@ -53,12 +53,12 @@ class GTag: # aka "Generic Tag"
         - args: Child elements (strings or other GTags). The first arg is the tag name if self.tag is None.
         - kwargs: HTML attributes (prefixed with '_') or events (prefixed with 'on').
         """
-        self._lock = threading.RLock()
-        self._childs: List[Union[str, 'GTag']] = []
+        self.__lock = threading.RLock()
+        self.childs: List[Union[str, 'GTag']] = []
         self.parent: Optional['GTag'] = None
         self._attrs: Dict[str, Any] = {}
         self._events: Dict[str, Callable] = {}
-        self._dirty = False
+        self.__dirty = False
         self._js_calls: List[str] = []
 
         # If tag is not set by subclass (class attribute), take it from first arg
@@ -84,16 +84,16 @@ class GTag: # aka "Generic Tag"
                 self._attrs[k[1:]] = v
 
     def add(self, *content: Any) -> 'GTag':
-        with self._lock:
+        with self.__lock:
             for item in content:
                 if item is None: continue
                 if isinstance(item, (list, tuple)):
                     self.add(*item)
                 else:
-                    self._childs.append(item)
+                    self.childs.append(item)
                     if isinstance(item, GTag):
                         item.parent = self
-            self._dirty = True
+            self.__dirty = True
         return self
 
     def __iadd__(self, other: Any) -> 'GTag':
@@ -110,19 +110,19 @@ class GTag: # aka "Generic Tag"
         - Attributes starting with 'on' are treated as event callbacks.
         - Setting an HTML attribute or event marks the tag as 'dirty' for client-side update.
         """
-        if name in ["_lock", "_childs", "_attrs", "_events", "_dirty", "_js_calls", "parent", "tag", "id"]:
+        if name in ["_GTag__lock", "childs", "_attrs", "_events", "_GTag__dirty", "_js_calls", "parent", "tag", "id"]:
             super().__setattr__(name, value)
         elif name.startswith("_on") and (callable(value) or isinstance(value, str)):
             # Event (e.g., self._onclick = my_callback or self._onclick = "alert(1)")
-            with self._lock:
+            with self.__lock:
                 self._events[name[3:]] = value
-                self._dirty = True
+                self.__dirty = True
         elif name.startswith("_"):
             # HTML attribute (e.g., self._class = "foo")
             attr_name = name[1:]
-            with self._lock:
+            with self.__lock:
                 self._attrs[attr_name] = value
-                self._dirty = True
+                self.__dirty = True
         else:
             # Regular Python attribute
             super().__setattr__(name, value)
@@ -143,12 +143,12 @@ class GTag: # aka "Generic Tag"
         return [other, self]
 
     def remove(self, item: Union[str, 'GTag']) -> 'GTag':
-        with self._lock:
-            if item in self._childs:
-                self._childs.remove(item)
+        with self.__lock:
+            if item in self.childs:
+                self.childs.remove(item)
                 if isinstance(item, GTag):
                     item.parent = None
-                self._dirty = True
+                self.__dirty = True
         return self
 
     def remove_self(self) -> 'GTag':
@@ -166,27 +166,27 @@ class GTag: # aka "Generic Tag"
         return None
 
     def clear(self) -> 'GTag':
-        with self._lock:
-            self._childs = []
-            self._dirty = True
+        with self.__lock:
+            self.childs = []
+            self.__dirty = True
         return self
 
     def add_class(self, name: str) -> 'GTag':
-        with self._lock:
+        with self.__lock:
             classes = self._attrs.get("class", "").split()
             if name not in classes:
                 classes.append(name)
                 self._attrs["class"] = " ".join(classes)
-                self._dirty = True
+                self.__dirty = True
         return self
 
     def remove_class(self, name: str) -> 'GTag':
-        with self._lock:
+        with self.__lock:
             classes = self._attrs.get("class", "").split()
             if name in classes:
                 classes.remove(name)
                 self._attrs["class"] = " ".join(classes)
-                self._dirty = True
+                self.__dirty = True
         return self
 
     def call_js(self, script: str) -> 'GTag':
@@ -199,7 +199,7 @@ class GTag: # aka "Generic Tag"
         if self.tag in VOID_ELEMENTS:
             return f"<{self.tag}{attrs}/>"
             
-        inner = "".join([str(child) for child in self._childs])
+        inner = "".join([str(child) for child in self.childs])
         
         if self.tag:
             return f"<{self.tag}{attrs}>{inner}</{self.tag}>"

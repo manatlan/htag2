@@ -58,7 +58,7 @@ def test_app_collect_updates():
     
     # Mark child as dirty
     child.clear() 
-    app._dirty = False # Reset app
+    app._GTag__dirty = False # Reset app
     updates = {}
     app.collect_updates(app, updates, js)
     assert child.id in updates

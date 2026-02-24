@@ -402,13 +402,13 @@ class App(GTag):
         Recursively traverses the tag tree to find 'dirty' tags that need re-rendering.
         Also collects pending JavaScript calls from tags.
         """
-        with tag._lock:
-            if tag._dirty:
+        with tag._GTag__lock:
+            if getattr(tag, "_GTag__dirty", False):
                 # This tag or one of its attributes changed, we re-render it entirely
                 updates[tag.id] = self.render_tag(tag)
             
             # ALWAYS check children for JS calls (or deep updates if parent wasn't dirty)
-            for child in tag._childs:
+            for child in tag.childs:
                 if isinstance(child, GTag):
                     # If the tag was already added to updates, we don't need its partial HTML,
                     # but we ALWAYS need its JS calls.
@@ -431,7 +431,7 @@ class App(GTag):
                 if s_str not in result:
                     result.append(s_str)
         
-        for child in tag._childs:
+        for child in tag.childs:
             if isinstance(child, GTag):
                 self.collect_statics(child, result)
 
@@ -447,7 +447,7 @@ class App(GTag):
             callback_id = msg.get("data", {}).get("callback_id")
             # Auto-sync value from client (bypass __setattr__ to avoid re-rendering the input while typing)
             if "value" in msg.get("data", {}):
-                with target_tag._lock:
+                with target_tag._GTag__lock:
                     target_tag._attrs["value"] = msg["data"]["value"]
 
             if event_name in target_tag._events:
@@ -561,13 +561,14 @@ class App(GTag):
         """
         def process(t: GTag) -> None:
             if isinstance(t, GTag):
-                with t._lock:
+                with t._GTag__lock:
                     # Auto-inject oninput for inputs if not already there, to support auto-binding
                     if t.tag in ["input", "textarea", "select"] and "input" not in t._events:
                         t._attrs["oninput"] = f"htag_event('{t.id}', 'input', event)"
-
-                    t._dirty = False # Clear dirty flag after rendering
-                    for child in t._childs:
+                    # Only clear dirty flag for objects that have it
+                    if hasattr(t, "_GTag__dirty"):
+                        t._GTag__dirty = False # Clear dirty flag after rendering
+                    for child in t.childs:
                         if isinstance(child, GTag):
                             process(child)
         
@@ -577,7 +578,7 @@ class App(GTag):
     def find_tag(self, root: GTag, tag_id: str) -> Optional[GTag]:
         if root.id == tag_id:
             return root
-        for child in root._childs:
+        for child in root.childs:
             if isinstance(child, GTag):
                 found = self.find_tag(child, tag_id)
                 if found: return found
