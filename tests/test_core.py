@@ -68,9 +68,14 @@ def test_gtag_render_attrs():
 
 def test_gtag_events():
     def my_handler(e): pass
-    t = GTag("button", _onclick=my_handler)
+    t = GTag("button", _onclick=my_handler, _onmouseover="alert(1)")
     assert "click" in t._GTag__events
     assert t._GTag__events["click"] == my_handler
+    
+    # Check JS literal event handling (previously missing line)
+    rendered = str(t)
+    assert 'onclick="htag_event' in rendered
+    assert 'onmouseover="alert(1)"' in rendered
 
 def test_tag_creator():
     MyDiv = Tag.Div
@@ -135,6 +140,24 @@ def test_add_class():
     assert t._class == "foo bar"
     t.add_class("foo") # already there
     assert t._class == "foo bar"
+
+def test_remove_class():
+    t = GTag("div", _class="foo bar")
+    
+    # Remove existing class
+    class_self = t.remove_class("foo")
+    assert class_self is t
+    assert t._class == "bar"
+    
+    # Remove non-existing class
+    t._GTag__dirty = False
+    t.remove_class("baz")
+    assert t._class == "bar"
+    assert t._GTag__dirty is False # Shouldn't be marked dirty if nothing was removed
+    
+    # Remove last class
+    t.remove_class("bar")
+    assert t._class == ""
 
 def test_gtag_iadd():
     t = GTag("div")
