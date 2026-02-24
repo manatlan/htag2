@@ -84,6 +84,32 @@ class GTag: # aka "Generic Tag"
             elif k.startswith("_"):
                 # Attributes like _class="foo" -> class="foo"
                 self.__attrs[k[1:]] = v
+                
+        self.init()
+
+    def init(self) -> None:
+        """Called automatically at the end of GTag initialization."""
+        pass
+
+    def on_mount(self) -> None:
+        """Called when this tag (and its descendants) is attached to the App root."""
+        pass
+
+    def on_unmount(self) -> None:
+        """Called when this tag (and its descendants) is detached from the App root."""
+        pass
+
+    def _trigger_mount(self) -> None:
+        self.on_mount()
+        for child in self.childs:
+            if isinstance(child, GTag):
+                child._trigger_mount()
+
+    def _trigger_unmount(self) -> None:
+        self.on_unmount()
+        for child in self.childs:
+            if isinstance(child, GTag):
+                child._trigger_unmount()
 
     def add(self, *content: Any) -> 'GTag':
         with self.__lock:
@@ -95,6 +121,8 @@ class GTag: # aka "Generic Tag"
                     self.childs.append(item)
                     if isinstance(item, GTag):
                         item.parent = self
+                        if self.root is not None:
+                            item._trigger_mount()
             self.__dirty = True
         return self
 
@@ -147,6 +175,9 @@ class GTag: # aka "Generic Tag"
     def remove(self, item: Union[str, 'GTag']) -> 'GTag':
         with self.__lock:
             if item in self.childs:
+                if isinstance(item, GTag):
+                    if self.root is not None:
+                        item._trigger_unmount()
                 self.childs.remove(item)
                 if isinstance(item, GTag):
                     item.parent = None
@@ -169,6 +200,11 @@ class GTag: # aka "Generic Tag"
 
     def clear(self) -> 'GTag':
         with self.__lock:
+            if self.root is not None:
+                for child in self.childs:
+                    if isinstance(child, GTag):
+                        child._trigger_unmount()
+                        child.parent = None
             self.childs = []
             self.__dirty = True
         return self

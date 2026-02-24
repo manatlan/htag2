@@ -26,7 +26,13 @@ class MyComponent(Tag.div):
         self += Tag.h1(f"Hello {name}")
 ```
 
-### 2. Composite Components
+### 2. Component Lifecycle
+htagravity provides three lifecycle hooks to override on custom components:
+- `init(self)`: Replaces `__init__` to safely initialize variables without `super()` boilerplate.
+- `on_mount(self)`: Fired when the component is firmly attached to the main `App` tree (`self.root` is ready).
+- `on_unmount(self)`: Fired when the component is removed, ideal for cleaning up tasks, caches, or event listeners.
+
+### 3. Composite Components
 When creating complex UI components (like a Card or a Window), you should override the `add(self, o)` method so that when users do `my_card += content`, the content goes into the correct inner container, not the root tag.
 
 ```python

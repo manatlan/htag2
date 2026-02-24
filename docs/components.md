@@ -20,6 +20,29 @@ class MyComponent(Tag.div):
         self.add(f"Hello {name}!")
 ```
 
+### Lifecycle Hooks
+
+htagravity provides three essential methods you can override in your custom components:
+
+- `init(self)`: Called exactly once at the end of component initialization. Use this instead of overriding `__init__` to avoid `super()` boilerplates.
+- `on_mount(self)`: Called when the component is finally attached to an active `Tag.App` instance (i.e. `self.root` is available). Good for subscribing to events or doing initial fetches.
+- `on_unmount(self)`: Called when the component (or its parent) is removed from the `Tag.App`. Good for cleaning up tasks or event listeners.
+
+```python
+class Clock(Tag.div):
+    def init(self):
+        self._class = "clock"
+        self.taskId = None
+        
+    def on_mount(self):
+        # We are on the screen! Start ticking...
+        print("Clock mounted")
+        
+    def on_unmount(self):
+        # We are removed from the screen! Cleanup...
+        print("Clock unmounted")
+```
+
 ### Tree Manipulation
 
 - `self.add(*content)`: Adds children (strings or other components).
