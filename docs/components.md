@@ -14,18 +14,17 @@ You can create a custom component by subclassing `Tag.div`, for example:
 from htag import Tag
 
 class MyComponent(Tag.div):
-    def __init__(self, name):
-        super().__init__()
+    def init(self, name):
         self._class = "my-class"
         self.add(f"Hello {name}!")
 ```
 
 ### Lifecycle Hooks
 
-htagravity provides three essential methods you can override in your custom components:
+Lifecycle hooks let you run code at specific times in a component's life:
 
-- `init(self)`: Called exactly once at the end of component initialization. Use this instead of overriding `__init__` to avoid `super()` boilerplates.
-- `on_mount(self)`: Called when the component is finally attached to an active `Tag.App` instance (i.e. `self.root` is available). Good for subscribing to events or doing initial fetches.
+- `init(*args, **kwargs)`: Called exactly once at the end of component initialization. Use this instead of overriding `__init__` to avoid `super()` boilerplates.
+- `on_mount()`: Called when the component is attached to the application DOM tree. Use this for subscribing to events or initializing resources that need a live DOM. Good for subscribing to events or doing initial fetches.
 - `on_unmount(self)`: Called when the component (or its parent) is removed from the `Tag.App`. Good for cleaning up tasks or event listeners.
 
 ```python

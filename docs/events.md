@@ -30,8 +30,7 @@ When you use an `<input>`, `<textarea>`, or `<select>`, `htag` injects an `_onin
 
 ```python
 class MyForm(Tag.App):
-    def __init__(self):
-        super().__init__()
+    def init(self):
         # No '_oninput' needed, it's automatic!
         self.entry = Tag.input(_value="Initial")
         self += self.entry

@@ -13,8 +13,7 @@ Every `Tag.App` in `htag` exposes an underlying **FastAPI** instance through its
 from htag import Tag
 
 class MyApp(Tag.App):
-    def __init__(self):
-        super().__init__()
+    def init(self):
         self += Tag.h1("Production App")
 
 # Create the FastAPI instance

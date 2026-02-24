@@ -23,8 +23,7 @@ Creating a basic `htag` app is simple:
 from htag import Tag, WebApp
 
 class HelloApp(Tag.App):
-    def __init__(self):
-        super().__init__()
+    def init(self):
         self += Tag.h1("Hello htag!")
         self <= Tag.button("Click Me", _onclick=lambda e: self.add(Tag.p("Clicked!")))
 

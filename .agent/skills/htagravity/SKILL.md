@@ -21,15 +21,14 @@ Every UI element in htagravity is a component created via `Tag`.
 from htag import Tag
 
 class MyComponent(Tag.div):
-    def __init__(self, name):
-        super().__init__()
+    def init(self, name, **kwargs):
         self += Tag.h1(f"Hello {name}")
 ```
 
 ### 2. Component Lifecycle
 htagravity provides three lifecycle hooks to override on custom components:
-- `init(self)`: Replaces `__init__` to safely initialize variables without `super()` boilerplate.
-- `on_mount(self)`: Fired when the component is firmly attached to the main `App` tree (`self.root` is ready).
+- `init(**kwargs)`: Called exactly once at the end of component initialization. Use this instead of overriding `__init__` to avoid `super()` boilerplate. Positional arguments (`*args`) are automatically appended as children before `init` is evaluated.
+- `on_mount()`: Fired when the component is firmly attached to the main `App` tree (`self.root` is ready).
 - `on_unmount(self)`: Fired when the component is removed, ideal for cleaning up tasks, caches, or event listeners.
 
 ### 3. Composite Components
@@ -37,8 +36,8 @@ When creating complex UI components (like a Card or a Window), you should overri
 
 ```python
 class Card(Tag.div):
-    def __init__(self, title):
-        super().__init__(_class="card")
+    def init(self, title, **kwargs):
+        self._class="card"
         self += Tag.h2(title)
         self.body = Tag.div(_class="card-body")
         # Use Tag.div.add to bypass the overridden add method during init
