@@ -102,6 +102,9 @@ class GTag: # aka "Generic Tag"
                 
         self.init(*args, **left_kwargs)
 
+        if _ctx.stack:
+            _ctx.stack[-1].add(self)
+
     def init(self, *args: Any, **kwargs: Any) -> None:
         """Called automatically at the end of GTag initialization."""
         for arg in args:
@@ -131,37 +134,24 @@ class GTag: # aka "Generic Tag"
             _ctx.stack[-1].add(self)
 
     def add(self, *content: Any) -> 'GTag':
-<<<<<<< HEAD
-        with self.__lock:
-            for item in content:
-                if item is None: continue
-                if isinstance(item, (list, tuple)):
-                    self.add(*item)
-                else:
-                    self.childs.append(item)
-                    if isinstance(item, GTag):
-                        item.parent = self
-                        if self.root is not None:
-                            item._trigger_mount()
-            self.__dirty = True
-=======
         for item in content:
             if item is None: continue
             if isinstance(item, (list, tuple)):
                 self.add(*item)
             else:
                 if isinstance(item, GTag):
-                    if item._parent is not None and item._parent is not self:
+                    if item.parent is not None and item.parent is not self:
                         item.remove_self()
 
-                with self._lock:
+                with self.__lock:
                     if isinstance(item, GTag):
-                        if item in self._childs:
-                            self._childs.remove(item)
-                        item._parent = self
-                    self._childs.append(item)
-                    self._dirty = True
->>>>>>> adfe9ef (feat: Introduce GTag context manager for declarative UI composition and automatic parent-child linking.)
+                        if item in self.childs:
+                            self.childs.remove(item)
+                        item.parent = self
+                        if self.root is not None:
+                            item._trigger_mount()
+                    self.childs.append(item)
+                    self.__dirty = True
         return self
 
     def __iadd__(self, other: Any) -> 'GTag':
@@ -236,24 +226,26 @@ class GTag: # aka "Generic Tag"
             current = current.parent
         return None
 
+    @property
+    def text(self) -> str:
+        """Returns all string children concatenated."""
+        return "".join(c for c in self.childs if isinstance(c, str))
+
+    @text.setter
+    def text(self, value: Any) -> None:
+        """Clears all children and sets the text content."""
+        self.clear()
+        self.add(str(value))
+
     def clear(self) -> 'GTag':
-<<<<<<< HEAD
         with self.__lock:
-            if self.root is not None:
-                for child in self.childs:
-                    if isinstance(child, GTag):
+            for child in self.childs:
+                if isinstance(child, GTag):
+                    if self.root is not None:
                         child._trigger_unmount()
-                        child.parent = None
+                    child.parent = None
             self.childs = []
             self.__dirty = True
-=======
-        with self._lock:
-            for child in self._childs:
-                if isinstance(child, GTag):
-                    child._parent = None
-            self._childs = []
-            self._dirty = True
->>>>>>> adfe9ef (feat: Introduce GTag context manager for declarative UI composition and automatic parent-child linking.)
         return self
 
     def add_class(self, name: str) -> 'GTag':
