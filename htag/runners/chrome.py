@@ -1,3 +1,4 @@
+import sys
 import time
 import subprocess
 import threading
@@ -106,4 +107,6 @@ class ChromeApp(BaseRunner):
             self.app.exit_on_disconnect = True
             
         ws = WebServer(self.app, on_instance=on_inst)
-        uvicorn.run(ws.app, host=host, port=port)
+        log_config = None if getattr(sys, 'frozen', False) else uvicorn.config.LOGGING_CONFIG
+        uvicorn.run(ws.app, host=host, port=port, log_config=log_config)
+        
