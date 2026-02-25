@@ -4,6 +4,12 @@
   <img src="docs/assets/logo.png" width="300" alt="htag2 logo">
 </p>
 
+<p align="center">
+  <a href="https://github.com/manatlan/HTAGravity/releases/tag/latest">
+    <img src="https://img.shields.io/badge/Download-Latest_Build-blue?style=for-the-badge&logo=github" alt="Download Latest Build">
+  </a>
+</p>
+
 Here is a full rewrite of htag, using only antigravity and prompts.
 
 It feels very good. It's not a replacement, it's just a POC.
