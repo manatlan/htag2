@@ -10,7 +10,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Response, 
 from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse
 from .core import GTag
 
-logger = logging.getLogger("htagravity")
+logger = logging.getLogger("htag2")
 
 class Event:
     """
@@ -249,14 +249,14 @@ class WebServer:
 
 class App(GTag):
     """
-    The main application class for htagravity.
+    The main application class for htag2.
     Handles HTML rendering, event dispatching, and WebSocket communication.
     """
     statics: List[GTag] = []
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__("body", *args, **kwargs)
-        self.exit_on_disconnect: bool = True # Default behavior
+        self.exit_on_disconnect: bool = False # Default behavior for Web/API apps
         self.websockets: Set[WebSocket] = set()
         self.sse_queues: Set[asyncio.Queue] = set() # Queues for active SSE connections
         self.sent_statics: Set[str] = set() # Track assets already in browser

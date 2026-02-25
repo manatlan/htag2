@@ -4,7 +4,7 @@ Runners are responsible for hosting your `App` and launching the interface.
 
 ## WebApp
 
-`WebApp` is the standard runner for web-based applications. It opens a new tab in your default browser.
+`WebApp` is the standard runner for web-based applications. By default, it starts the server without automatically opening a browser tab.
 
 ```python
 from htag import WebApp, Tag
@@ -16,7 +16,9 @@ if __name__ == "__main__":
     WebApp(HelloApp).run(host="0.0.0.0", port=8000)
 ```
 
-- **Default behavior**: Does not exit the server when the browser tab is closed.
+- **Default behavior**: 
+    - Does not exit the server when the browser tab is closed.
+    - Does **not** open a browser tab automatically (can be enabled with `run(open_browser=True)`).
 - **Usage**: Best for tools that should run continuously or be accessible by multiple users.
 
 ## ChromeApp

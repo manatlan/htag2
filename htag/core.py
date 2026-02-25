@@ -16,7 +16,7 @@ class _HtagLocal(threading.local):
 
 _ctx = _HtagLocal()
 
-logger = logging.getLogger("htagravity")
+logger = logging.getLogger("htag2")
 
 class State:
     def __init__(self, value: Any):

@@ -1,7 +1,7 @@
 
 import logging
 
-logger = logging.getLogger("htagravity")
+logger = logging.getLogger("htag2")
 
 from .core import GTag, Tag, prevent, stop
 from .server import App

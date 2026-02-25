@@ -171,7 +171,7 @@ class Toggle(Tag.label):
         self._class = "relative inline-flex items-center cursor-pointer"
         
         # The hidden checkbox is what stores the state
-        # In htagravity, an input automatically updates its `value` attribute on client changes
+        # In htag2, an input automatically updates its `value` attribute on client changes
         self.checkbox = Tag.input(_type="checkbox", _class="sr-only peer")
         if onchange:
              self.checkbox._onchange = onchange
@@ -501,7 +501,7 @@ class DemoApp(Tag.App):
             
             with Tag.div(_class="text-center mb-10"):
                 Tag.h1("Tailwind Components Demo", _class="text-4xl font-extrabold text-slate-900 tracking-tight")
-                Tag.p("htagravity + Tailwind CSS in action", _class="mt-2 text-lg text-slate-600")
+                Tag.p("htag2 + Tailwind CSS in action", _class="mt-2 text-lg text-slate-600")
 
             # Create a Grid for our Cards
             with Tag.div(_class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl"):

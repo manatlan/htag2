@@ -259,6 +259,7 @@ async def test_handle_websocket_lifecycle():
     from fastapi import WebSocketDisconnect
     import os
     app = App()
+    app.exit_on_disconnect = True
     
     # 1. Success case + exit
     import asyncio
@@ -281,6 +282,7 @@ async def test_handle_websocket_lifecycle():
     ws2 = AsyncMock()
     ws2.receive_text.side_effect = WebSocketDisconnect()
     app2 = App()
+    app.exit_on_disconnect = True
     app2.websockets.add(AsyncMock()) # Another active session
     
     server = MagicMock()
@@ -297,6 +299,7 @@ async def test_handle_websocket_lifecycle():
     ws3 = AsyncMock()
     ws3.receive_text.side_effect = WebSocketDisconnect()
     app3 = App()
+    app3.exit_on_disconnect = True
     app3._browser_cleanup = MagicMock()
     with patch("htag.server.os._exit") as mock_exit, \
          patch("htag.server.asyncio.sleep", side_effect=fast_sleep):

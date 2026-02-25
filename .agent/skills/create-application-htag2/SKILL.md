@@ -1,16 +1,16 @@
 ---
-name: htagravity-development
-description: Guidelines and best practices for building modern, state-of-the-art web applications using the htagravity framework.
+name: htag2-development
+description: Guidelines and best practices for building modern, state-of-the-art web applications using the htag2 framework.
 ---
 
-# htagravity Developer Skill
+# htag2 Developer Skill
 
-Use this skill to design, implement, and refine web applications using the **htagravity** framework.
+Use this skill to design, implement, and refine web applications using the **htag2** framework.
 
 ## Core Architecture
 
 ### 1. Components (`Tag`)
-Every UI element in htagravity is a component created via `Tag`.
+Every UI element in htag2 is a component created via `Tag`.
 - Use the `Tag` factory for standard HTML elements (e.g., `Tag.div`, `Tag.button`).
 - Create custom components by subclassing any `Tag.*` class.
 - Add children using `+=` or the `<=` operator (e.g., `self <= Tag.p("hello")` or `self += Tag.p("hello")`).
@@ -33,7 +33,7 @@ class MyComponent(Tag.div):
 ```
 
 ### 2. Component Lifecycle
-htagravity provides three lifecycle hooks to override on custom components:
+htag2 provides three lifecycle hooks to override on custom components:
 - `init(**kwargs)`: Called exactly once at the end of component initialization. Use this instead of overriding `__init__` to avoid `super()` boilerplate. Positional arguments (`*args`) are automatically appended as children before `init` is evaluated.
 - `on_mount()`: Fired when the component is firmly attached to the main `App` tree (`self.root` is ready).
 - `on_unmount(self)`: Fired when the component is removed, ideal for cleaning up tasks, caches, or event listeners.
@@ -56,7 +56,7 @@ class Card(Tag.div):
 ```
 
 ### 4. State & Reactivity
-htagravity supports both traditional "dirty-marking" and modern reactive `State`.
+htag2 supports both traditional "dirty-marking" and modern reactive `State`.
 
 **Reactive State (Preferred for data-driven UIs)**:
 - Use `from htag.core import State`.
@@ -81,7 +81,7 @@ htagravity supports both traditional "dirty-marking" and modern reactive `State`
 - **Events**: Properties starting with `_on` are mapped to Python callbacks.
 
 ### 5. Forms & Inputs
-htagravity automatically binds input events to Python.
+htag2 automatically binds input events to Python.
 - For text/number inputs, the current value is accessed safely via event handlers: `val = event.value`
 - For checkboxes/toggles, the framework synchronizes the boolean state. Access it safely using `getattr(self.checkbox, "_value", False)`. Do not use `.value` directly on a checkbox component as it will raise an `AttributeError`.
 

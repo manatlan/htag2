@@ -1,7 +1,7 @@
 # htag2
 
 <p align="center">
-  <img src="docs/assets/logo.png" width="300" alt="htagravity logo">
+  <img src="docs/assets/logo.png" width="300" alt="htag2 logo">
 </p>
 
 Here is a full rewrite of htag, using only antigravity and prompts.
@@ -18,7 +18,7 @@ Check the [Official Documentation](https://manatlan.github.io/htag2/) for more i
 
 ## Antigravity resumes :
 
-HTAGravity (now renamed to htag2) is a Python library for building web applications using HTML, CSS, and JavaScript.
+htag2 (now renamed to htag2) is a Python library for building web applications using HTML, CSS, and JavaScript.
 
 ### Key Resiliency Features Added
 *   **F5/Reload Robustness**: Refreshing the browser no longer kills the Python backend; the session reconstructs cleanly.

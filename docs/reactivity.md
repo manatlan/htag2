@@ -33,7 +33,7 @@ Tag.p(lambda: f"The current count is {self.count.value}")
 
 ### Lists of Components
 
-Lambdas can also return lists or tuples of components. HTAGravity handles the flattening and rendering automatically.
+Lambdas can also return lists or tuples of components. htag2 handles the flattening and rendering automatically.
 
 ```python
 Tag.ul(lambda: [Tag.li(user.name) for user in self.users.value])

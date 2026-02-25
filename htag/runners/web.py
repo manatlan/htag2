@@ -10,7 +10,7 @@ from .base import BaseRunner
 if TYPE_CHECKING:
     from ..server import App
 
-logger = logging.getLogger("htagravity")
+logger = logging.getLogger("htag2")
 
 class WebApp(BaseRunner):
     """
@@ -29,14 +29,15 @@ class WebApp(BaseRunner):
             # For simplicity, we assume the user might want to customize it in their App class.
             pass
 
-    def run(self, host: str = "127.0.0.1", port: int = 8000) -> None:
-        def launch() -> None:
-            time.sleep(1)
-            url = f"http://{host}:{port}"
-            webbrowser.open(url)
-            logger.info("Opened default browser at %s", url)
+    def run(self, host: str = "127.0.0.1", port: int = 8000, open_browser: bool = False) -> None:
+        if open_browser:
+            def launch() -> None:
+                time.sleep(1)
+                url = f"http://{host}:{port}"
+                webbrowser.open(url)
+                logger.info("Opened default browser at %s", url)
 
-        threading.Thread(target=launch, daemon=True).start()
+            threading.Thread(target=launch, daemon=True).start()
         
         from ..server import WebServer
         

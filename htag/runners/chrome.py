@@ -11,7 +11,7 @@ from .base import BaseRunner
 if TYPE_CHECKING:
     from ..server import App
 
-logger = logging.getLogger("htagravity")
+logger = logging.getLogger("htag2")
 
 class ChromeApp(BaseRunner):
     """
@@ -33,7 +33,7 @@ class ChromeApp(BaseRunner):
                 import tempfile
                 import shutil
                 import atexit
-                tmp_dir = tempfile.mkdtemp(prefix="htagravity_")
+                tmp_dir = tempfile.mkdtemp(prefix="htag2_")
                 
                 def cleanup() -> None:
                     try:
@@ -95,10 +95,14 @@ class ChromeApp(BaseRunner):
             threading.Thread(target=launch, daemon=True).start()
 
         from ..server import WebServer
-        # Use on_instance to attach cleanup if it's defined (kiosk mode only)
-        on_inst: Optional[Callable] = None
-        if self._cleanup_func:
-            on_inst = lambda inst: setattr(inst, "_browser_cleanup", self._cleanup_func)
+        
+        def on_inst(inst):
+            inst.exit_on_disconnect = True
+            if self._cleanup_func:
+                setattr(inst, "_browser_cleanup", self._cleanup_func)
+                
+        if not inspect.isclass(self.app):
+            self.app.exit_on_disconnect = True
             
         ws = WebServer(self.app, on_instance=on_inst)
         uvicorn.run(ws.app, host=host, port=port)
