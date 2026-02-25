@@ -3,7 +3,8 @@ import subprocess
 import threading
 import logging
 import uvicorn
-import inspect
+import platform
+import os
 from typing import Union, Type, TYPE_CHECKING, Optional, Callable
 from .base import BaseRunner
 
@@ -45,7 +46,23 @@ class ChromeApp(BaseRunner):
                 # Cleanup logic will be attached to instances via on_instance callback
                 self._cleanup_func = cleanup
                 
-                browsers = ["google-chrome-stable", "google-chrome", "chromium-browser", "chromium", "chrome", "microsoft-edge", "brave-browser"]
+                browsers: List[str] = []
+                if platform.system() == "Windows":
+                    # Windows-specific browser paths
+                    possible_paths = [
+                        os.path.join(os.environ.get("PROGRAMFILES", "C:\\Program Files"), "Google", "Chrome", "Application", "chrome.exe"),
+                        os.path.join(os.environ.get("PROGRAMFILES(X86)", "C:\\Program Files (x86)"), "Google", "Chrome", "Application", "chrome.exe"),
+                        os.path.join(os.environ.get("LOCALAPPDATA", ""), "Google", "Chrome", "Application", "chrome.exe"),
+                        os.path.join(os.environ.get("PROGRAMFILES", "C:\\Program Files"), "Microsoft", "Edge", "Application", "msedge.exe"),
+                        os.path.join(os.environ.get("PROGRAMFILES(X86)", "C:\\Program Files (x86)"), "Microsoft", "Edge", "Application", "msedge.exe"),
+                        os.path.join(os.environ.get("PROGRAMFILES", "C:\\Program Files"), "BraveSoftware", "Brave-Browser", "Application", "brave.exe"),
+                        os.path.join(os.environ.get("LOCALAPPDATA", ""), "BraveSoftware", "Brave-Browser", "Application", "brave.exe"),
+                    ]
+                    browsers = [p for p in possible_paths if os.path.isfile(p)]
+                else:
+                    # Linux/macOS browser names
+                    browsers = ["google-chrome-stable", "google-chrome", "chromium-browser", "chromium", "chrome", "microsoft-edge", "brave-browser"]
+                
                 found = False
                 
                 for browser in browsers:
