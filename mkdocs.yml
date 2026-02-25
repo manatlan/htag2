@@ -34,9 +34,14 @@ theme:
     - search.highlight
     - content.code.copy
 
+plugins:
+  - search
+  - mkdocstrings
+
 nav:
   - Home: index.md
   - Components: components.md
+  - Reactivity: reactivity.md
   - Events: events.md
   - Runners: runners.md
   - Deployment: deployment.md
