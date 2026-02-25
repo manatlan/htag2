@@ -5,26 +5,40 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/manatlan/HTAGravity/releases/tag/latest">
+  <a href="https://github.com/manatlan/htag2/releases/tag/latest">
     <img src="https://img.shields.io/badge/Download-Latest_Build-blue?style=for-the-badge&logo=github" alt="Download Latest Build">
   </a>
 </p>
 
-Here is a full rewrite of htag, using only antigravity and prompts.
+Here is a full rewrite of [htag](https://github.com/manatlan/htag), using only antigravity and prompts.
 
 It feels very good. It's not a replacement, it's just a POC.
 
-It's completly crazy, but it works (for the basics, on linux only, and with "chrome app mode" only).
+It's completly crazy, but it works (ChromeApp & WebApp, on linux/windows).
 
-[DOC](https://manatlan.github.io/htag2/)
 
 ## Get Started
 
 Check the [Official Documentation](https://manatlan.github.io/htag2/) for more information.
 
+## Install
+
+```bash
+git clone https://github.com/manatlan/htag2.git
+cd htag2
+uv run main3.py
+```
+
+currently, it's not available yet on pypi ... but the latest working wheel is available on the [latest release](https://github.com/manatlan/htag2/releases/tag/latest).
+
+### Skill
+
+With gemini-cli, claude-code, mistral-vibe (or others), you can use this [SKILL.md](.agent/skills/create-application-htag2/SKILL.md) to create a htag2 application.
+
+
 ## Antigravity resumes :
 
-htag2 (now renamed to htag2) is a Python library for building web applications using HTML, CSS, and JavaScript.
+htag2 is a Python library for building web applications using HTML, CSS, and JavaScript.
 
 ### Key Resiliency Features Added
 *   **F5/Reload Robustness**: Refreshing the browser no longer kills the Python backend; the session reconstructs cleanly.
