@@ -85,7 +85,7 @@ htag2 automatically binds input events to Python.
 - For text/number inputs, the current value is accessed safely via event handlers: `val = event.value`
 - For checkboxes/toggles, the framework synchronizes the boolean state. Access it safely using `getattr(self.checkbox, "_value", False)`. Do not use `.value` directly on a checkbox component as it will raise an `AttributeError`.
 
-### 5. Resiliency & Fallback
+### 6. Resiliency & Fallback
 The `htag/server.py` implementation is fully robust against network irregularities:
 - **WebSocket to HTTP Fallback**: If a WebSocket drops or fails to connect, the Javascript bridge automatically falls back to utilizing standard HTTP POST requests (`/event`) and Server-Sent Events (`/stream`).
 - **Graceful Reconnections**: A user pressing F5 will not kill the server thread. The server only exits when the browser tab is explicitly closed or navigates away cleanly without returning within the 1-second reconnect window.
@@ -110,9 +110,33 @@ Use decorators to control event behavior:
 - `@prevent`: Calls `event.preventDefault()` on the client side.
 - `@stop`: Calls `event.stopPropagation()` on the client side.
 
+### Use `yield` for UI Rendering
+In event handlers, you can use `yield` to trigger partial UI updates. This is extremely useful for:
+- Showing a "Processing..." state before a long-running task.
+- Creating step-by-step UI progressions without complex state management.
+- Providing immediate visual feedback.
+
+```python
+def _onclick(self, event):
+    self.text = "Processing..."
+    yield # UI updates immediately to show "Processing..."
+
+    time.sleep(2) # Simulate work
+    self.text = "Done!"
+    # UI updates again at the end of the method
+```
+
 ## Runner Choice
 - **`ChromeApp`**: Primary choice. Attempts to launch a clean desktop-like Kiosk window via Chromium/Chrome binaries. If none are found, it falls back to opening the default system browser via `webbrowser.open`.
 - **`WebApp`**: For shared web access. Opens in the default browser in a new tab.
+
+## Build standalone executable
+When you are in developpment using "uv" (and htag2 is installed in the venv).
+Use `uv run htagm build <path>` to build a standalone executable for your htag app.
+
+```bash
+uv run htagm build main.py
+```
 
 ## Multi-Session Deployment
 To ensure each user has their own isolated session/state:

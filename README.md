@@ -33,7 +33,7 @@ currently, it's not available yet on pypi ... but the latest working wheel is av
 
 ### Skill
 
-With gemini-cli, claude-code, mistral-vibe (or others), you can use this [SKILL.md](.agent/skills/create-application-htag2/SKILL.md) to create a htag2 application.
+With gemini-cli, claude-code, mistral-vibe (or others), you can use this [SKILL.md](.agent/skills/htag2-development/SKILL.md) to create a htag2 application.
 
 
 ## Antigravity resumes :
