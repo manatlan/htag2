@@ -38,6 +38,73 @@ var use_fallback = false;
 var sse;
 window._htag_callbacks = {}; // Store promise resolvers
 
+// --- htag-error Web Component (Shadow DOM for style isolation) ---
+class HtagError extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({mode: 'open'});
+        this.shadowRoot.innerHTML = `
+            <style>
+                :host {
+                    display: none;
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 80%;
+                    max-width: 600px;
+                    background: #fee2e2;
+                    border: 1px solid #ef4444;
+                    border-left: 5px solid #ef4444;
+                    color: #991b1b;
+                    padding: 15px;
+                    border-radius: 4px;
+                    z-index: 2147483647;
+                    font-family: system-ui, -apple-system, sans-serif;
+                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+                    max-height: 80vh;
+                    overflow-y: auto;
+                }
+                :host([show]) { display: block; }
+                h3 { margin: 0 0 10px 0; font-size: 16px; }
+                pre { background: #fef2f2; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; overflow-x: auto; margin:0; }
+                .close { position: absolute; top: 10px; right: 15px; cursor: pointer; font-weight: bold; font-size: 18px; color: #ef4444; }
+                .close:hover { color: #b91c1c; }
+            </style>
+            <div class="close" title="Close">×</div>
+            <h3 id="title">Error</h3>
+            <pre id="trace"></pre>
+        `;
+        this.shadowRoot.querySelector('.close').onclick = () => this.removeAttribute('show');
+    }
+    show(title, trace) {
+        this.shadowRoot.getElementById('title').textContent = title;
+        this.shadowRoot.getElementById('trace').textContent = trace || 'No traceback available.';
+        this.setAttribute('show', '');
+    }
+}
+customElements.define('htag-error', HtagError);
+
+// Global references for UI overlays
+var _error_overlay = document.createElement('htag-error');
+
+document.addEventListener("DOMContentLoaded", () => {
+    document.body.appendChild(_error_overlay);
+});
+
+window.onerror = function(message, source, lineno, colno, error) {
+    if(_error_overlay && typeof _error_overlay.show === 'function') {
+        _error_overlay.show("Client JavaScript Error", `${message}\\n${source}:${lineno}:${colno}\\n${error ? error.stack : ''}`);
+    }
+};
+window.onunhandledrejection = function(event) {
+    if(_error_overlay && typeof _error_overlay.show === 'function') {
+        _error_overlay.show("Unhandled Promise Rejection", String(event.reason));
+    }
+};
+
+
+
 function init_ws() {
     ws = new WebSocket("ws://" + window.location.host + "/ws");
     
@@ -71,6 +138,11 @@ function handle_payload(data) {
             var el = document.getElementById(id);
             if(el) el.outerHTML = data.updates[id];
         }
+        
+        // Ensure overlays are still in the DOM (in case the body was replaced)
+        if(_error_overlay && _error_overlay.parentNode !== document.body) {
+            document.body.appendChild(_error_overlay);
+        }
         // Execute any JavaScript calls emitted by the Python tags
         if(data.js) {
             for(var i=0; i<data.js.length; i++) eval(data.js[i]);
@@ -91,6 +163,12 @@ function handle_payload(data) {
             window._htag_callbacks[data.callback_id](data.result);
             delete window._htag_callbacks[data.callback_id];
         }
+    } else if (data.action == "error") {
+        if(_error_overlay && typeof _error_overlay.show === 'function') {
+            _error_overlay.show("Server Error", data.traceback);
+        } else {
+            console.error("Server Error:", data.traceback);
+        }
     }
 }
 
@@ -100,11 +178,15 @@ function fallback() {
     if(ws) ws.close(); // Ensure ws is torn down
     
     sse = new window.EventSource("/stream");
+    sse.onopen = () => console.log("htag: SSE connected");
     sse.onmessage = function(event) {
         handle_payload(JSON.parse(event.data));
     };
     sse.onerror = function(err) {
         console.error("htag: SSE error", err);
+        if(_error_overlay && typeof _error_overlay.show === 'function') {
+            _error_overlay.show("Connection Lost", "Server Sent Events connection failed.");
+        }
     };
 }
 
@@ -145,7 +227,18 @@ function htag_event(id, event_name, event) {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify(payload)
-        }).catch(err => console.error("htag event POST error:", err));
+        }).then(response => {
+            if (!response.ok) {
+                if(_error_overlay && typeof _error_overlay.show === 'function') {
+                    _error_overlay.show("HTTP Error", `Server returned status: ${response.status}`);
+                }
+            }
+        }).catch(err => {
+            console.error("htag event POST error:", err);
+            if(_error_overlay && typeof _error_overlay.show === 'function') {
+                _error_overlay.show("Network Error", "Could not reach server to trigger event.");
+            }
+        });
     }
 
     return new Promise(resolve => {
@@ -257,6 +350,7 @@ class App(GTag):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__("body", *args, **kwargs)
         self.exit_on_disconnect: bool = False # Default behavior for Web/API apps
+        self.debug: bool = True # Local debug mode default
         self.websockets: Set[WebSocket] = set()
         self.sse_queues: Set[asyncio.Queue] = set() # Queues for active SSE connections
         self.sent_statics: Set[str] = set() # Track assets already in browser
@@ -270,12 +364,25 @@ class App(GTag):
 
     def _render_page(self) -> str:
         # 1. Render the initial body FIRST to populate __rendered_callables
-        body_html = self.render_initial()
+        try:
+            body_html = self.render_initial()
+        except Exception as e:
+            import traceback
+            error_trace = traceback.format_exc()
+            logger.error("Error during initial render: %s\n%s", e, error_trace)
+            if self.debug:
+                safe_trace = error_trace.replace('`', '\\`').replace('$', '\\$')
+                body_html = f"<body><htag-error show='true'></htag-error><script>document.body.appendChild(document.createElement('htag-error')).show('Initial Render Error', `{safe_trace}`);</script></body>"
+            else:
+                body_html = "<body><h1>Internal Server Error</h1></body>"
         
         # 2. Collect ALL statics from the whole tree
         self.sent_statics.clear()
         all_statics: List[str] = []
-        self.collect_statics(self, all_statics)
+        try:
+            self.collect_statics(self, all_statics)
+        except Exception:
+            pass # Fatal error already caught above
         self.sent_statics.update(all_statics)
         statics_html = "".join(all_statics)
 
@@ -487,15 +594,22 @@ class App(GTag):
                                 await self.broadcast_updates()
                         except StopIteration as e:
                             res = e.value # This is the return value of the generator
+                            
+                    # Sanitize result: we don't want to send GTag instances (not JSON serializable)
+                    if isinstance(res, GTag):
+                        res = True # Convert to a simple truthy value
+                    
+                    # Final broadcast after callback finishes, including the result if any
+                    await self.broadcast_updates(result=res, callback_id=callback_id)
                 except Exception as e:
                     import traceback
-                    error_msg = f"Error in {event_name} callback: {str(e)}\n{traceback.format_exc()}"
+                    error_trace = traceback.format_exc()
+                    error_msg = f"Error in {event_name} callback: {str(e)}\n{error_trace}"
                     logger.error(error_msg)
                     # Use broadcast-like update for error reporting
                     err_payload = json.dumps({
-                        "action": "update",
-                        "updates": {},
-                        "js": [f"console.error({repr(error_msg)})"],
+                        "action": "error",
+                        "traceback": error_trace if self.debug else "Internal Server Error",
                         "callback_id": callback_id,
                         "result": None
                     })
@@ -513,14 +627,7 @@ class App(GTag):
                     return
             else:
                 res = None
-
-            # Sanitize result: we don't want to send GTag instances (not JSON serializable)
-            # This happens often with "self += Tag(...)" which returns self.
-            if isinstance(res, GTag):
-                res = True # Convert to a simple truthy value
-            
-            # Final broadcast after callback finishes, including the result if any
-            await self.broadcast_updates(result=res, callback_id=callback_id)
+                await self.broadcast_updates(result=res, callback_id=callback_id)
 
     async def broadcast_updates(self, result: Any = None, callback_id: Optional[str] = None) -> None:
         """
@@ -530,7 +637,37 @@ class App(GTag):
         """
         updates: Dict[str, str] = {}
         js_calls: List[str] = []
-        self.collect_updates(self, updates, js_calls)
+        
+        try:
+            self.collect_updates(self, updates, js_calls)
+        except Exception as e:
+            import traceback
+            error_trace = traceback.format_exc()
+            error_msg = f"Error during render/update collection: {str(e)}\n{error_trace}"
+            logger.error(error_msg)
+            
+            err_payload = json.dumps({
+                "action": "error",
+                "traceback": error_trace if self.debug else "Internal Server Error",
+                "callback_id": callback_id,
+                "result": None
+            })
+            
+            # Send to websocket clients
+            dead_ws: List[WebSocket] = []
+            for client in list(self.websockets):
+                try:
+                    await client.send_text(err_payload)
+                except Exception:
+                    dead_ws.append(client)
+            for client in dead_ws:
+                self.websockets.discard(client)
+                
+            # Send to SSE clients
+            for queue in self.sse_queues:
+                queue.put_nowait(err_payload)
+                
+            return # Abort sending normal updates
         
         all_statics: List[str] = []
         self.collect_statics(self, all_statics)

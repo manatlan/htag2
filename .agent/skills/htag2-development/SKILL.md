@@ -90,6 +90,13 @@ The `htag/server.py` implementation is fully robust against network irregulariti
 - **WebSocket to HTTP Fallback**: If a WebSocket drops or fails to connect, the Javascript bridge automatically falls back to utilizing standard HTTP POST requests (`/event`) and Server-Sent Events (`/stream`).
 - **Graceful Reconnections**: A user pressing F5 will not kill the server thread. The server only exits when the browser tab is explicitly closed or navigates away cleanly without returning within the 1-second reconnect window.
 
+### 7. Debug Mode & Error Visualization
+htag2 includes a built-in visual aid mechanism to help developers track bugs:
+- **`App(debug=True)` (Default)**: During development, ANY error that occurs (a Python exception in a callback, a JavaScript error, or a network disconnection) is visually reported via a Shadow DOM overlay at the bottom left of the screen.
+  - Python stack traces are sent to the browser securely without crashing the server.
+  - A small connection LED indicator (Green/Orange/Blue/Red) consistently monitors the WebSocket/SSE bridge status.
+- **`App(debug=False)`**: Use this for production (`ServerApp`, `FastAPI`). Tracebacks are logged internally and only generic "Internal Server Error" messages are shown in the client UI to prevent sensitive data leakage.
+
 ## Best Practices
 
 ### Layout & Styling

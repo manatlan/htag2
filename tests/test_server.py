@@ -147,10 +147,54 @@ async def test_app_handle_event_error():
     msg = {"id": btn.id, "event": "click", "data": {"callback_id": "error1"}}
     
     await app.handle_event(msg, ws)
-    # Should send an update with js console.error
+    # Should send an error payload
     data = json.loads(ws.send_text.call_args[0][0])
-    assert "boom" in data["js"][0]
+    assert data["action"] == "error"
+    assert "boom" in data["traceback"]
     assert data["callback_id"] == "error1"
+
+@pytest.mark.asyncio
+async def test_app_handle_event_async_error():
+    app = App()
+    async def async_fail(e):
+        await asyncio.sleep(0.01)
+        raise RuntimeError("async boom")
+        
+    btn = Tag.button(_onclick=async_fail)
+    app += btn
+    
+    ws = AsyncMock()
+    msg = {"id": btn.id, "event": "click", "data": {"callback_id": "error_async1"}}
+    
+    await app.handle_event(msg, ws)
+    data = json.loads(ws.send_text.call_args[0][0])
+    assert data["action"] == "error"
+    assert "async boom" in data["traceback"]
+    assert data["callback_id"] == "error_async1"
+
+@pytest.mark.asyncio
+async def test_app_handle_event_error_sse_fallback():
+    app = App()
+    def fail(e):
+        raise ValueError("sse boom")
+        
+    btn = Tag.button(_onclick=fail)
+    app += btn
+    
+    # Client has only SSE connected (ws is None like in HTTP POST fallback)
+    queue = asyncio.Queue()
+    app.sse_queues.add(queue)
+    
+    msg = {"id": btn.id, "event": "click", "data": {"callback_id": "error_sse1"}}
+    
+    await app.handle_event(msg, None)
+    
+    # We expect the payload in the queue
+    payload = queue.get_nowait()
+    data = json.loads(payload)
+    assert data["action"] == "error"
+    assert "sse boom" in data["traceback"]
+    assert data["callback_id"] == "error_sse1"
 
 def test_app_render_page():
     app = App()
@@ -158,6 +202,19 @@ def test_app_render_page():
     assert "<!DOCTYPE html>" in html
     assert app.__class__.__name__ in html
     assert app.id in html
+
+def test_app_render_page_error():
+    app = App()
+    def crash(): raise ValueError("initial view crash")
+    app <= crash
+    html = app._render_page()
+    assert "Initial Render Error" in html
+    assert "initial view crash" in html
+    assert "Internal Server Error" not in html
+    
+    app.debug = False
+    html = app._render_page()
+    assert "Internal Server Error" in html
 
 @pytest.mark.asyncio
 async def test_broadcast_updates():
@@ -179,6 +236,24 @@ async def test_broadcast_updates():
     app.call_js("alert(2)")
     await app.broadcast_updates()
     assert ws2 not in app.websockets
+
+@pytest.mark.asyncio
+async def test_broadcast_updates_render_error():
+    app = App()
+    ws = AsyncMock()
+    app.websockets.add(ws)
+    
+    app._GTag__dirty = True
+    def crashing_render():
+        raise TypeError("Render crash simulation")
+    app <= crashing_render
+    
+    await app.broadcast_updates(callback_id="123")
+    
+    data = json.loads(ws.send_text.call_args[0][0])
+    assert data["action"] == "error"
+    assert "Render crash simulation" in data["traceback"]
+    assert data["callback_id"] == "123"
 
 def test_app_property():
     app = App()
