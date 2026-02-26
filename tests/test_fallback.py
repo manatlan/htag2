@@ -1,5 +1,5 @@
 import pytest
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 import asyncio
 import json
 from htag import Tag
@@ -46,7 +46,7 @@ async def test_fallback_cycle():
     server = WebServer(MyMockApp)
     
     # 1. Simulate initial home page load to get cookie
-    from fastapi import Request
+    from starlette.requests import Request
     
     # httpx AsyncClient recommended for streaming
     from httpx import AsyncClient, ASGITransport

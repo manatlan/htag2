@@ -33,7 +33,7 @@ def build(entrypoint: str):
 
     # Identify hidden imports common to htag apps
     hidden_imports = [
-        "fastapi",
+        "starlette",
         "uvicorn",
         "websockets",
         "htag",

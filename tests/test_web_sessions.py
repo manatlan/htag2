@@ -1,5 +1,5 @@
 import pytest
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from htag.server import WebServer
 from htag import Tag
 

@@ -257,8 +257,8 @@ async def test_broadcast_updates_render_error():
 
 def test_app_property():
     app = App()
-    from fastapi import FastAPI
-    assert isinstance(app.app, FastAPI)
+    from starlette.applications import Starlette
+    assert isinstance(app.app, Starlette)
 
 @pytest.mark.asyncio
 async def test_app_handle_event_value_sync():
@@ -331,7 +331,7 @@ def test_render_tag_special_cases():
 
 @pytest.mark.asyncio
 async def test_handle_websocket_lifecycle():
-    from fastapi import WebSocketDisconnect
+    from starlette.websockets import WebSocketDisconnect
     import os
     app = App()
     app.exit_on_disconnect = True
@@ -400,7 +400,7 @@ async def test_handle_websocket_lifecycle():
 @pytest.mark.asyncio
 async def test_websocket_route_coverage():
     from htag.server import WebServer
-    from fastapi.testclient import TestClient
+    from starlette.testclient import TestClient
     
     server = WebServer(App)
     client = TestClient(server.app)

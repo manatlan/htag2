@@ -10,3 +10,4 @@ wheels/
 .venv
 site/
 local_ideas/
+htmlcov/

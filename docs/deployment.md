@@ -2,9 +2,9 @@
 
 While runners are great for development and desktop apps, `htag` applications are fully compatible with production-grade web servers.
 
-## FastAPI Integration
+## Starlette Integration
 
-Every `Tag.App` in `htag` exposes an underlying **FastAPI** instance through its `.app` property. This allows you to deploy your application using standard tools like `uvicorn` or `gunicorn`.
+Every `Tag.App` in `htag` exposes an underlying **Starlette** instance through its `.app` property. This allows you to deploy your application using standard tools like `uvicorn` or `gunicorn`.
 
 ### Basic Production Entrypoint
 
@@ -16,7 +16,7 @@ class MyApp(Tag.App):
     def init(self):
         self <= Tag.h1("Production App")
 
-# Create the FastAPI instance
+# Create the Starlette instance
 app = MyApp().app
 ```
 
@@ -26,16 +26,17 @@ You can now run this with `uvicorn`:
 uvicorn app:app --host 0.0.0.0 --port 80
 ```
 
-## Embedding htag in existing FastAPI apps
+## Embedding htag in existing Starlette/FastAPI apps
 
-Since `htag` uses a `WebServer` wrapper, you can also mount it as a sub-application or include its routes in a larger FastAPI project.
+Since `htag` uses a `WebServer` wrapper, you can also mount it as a sub-application or include its routes in a larger Starlette or FastAPI project.
 
 ```python
-from fastapi import FastAPI
+from starlette.applications import Starlette
+from starlette.responses import JSONResponse
 from htag.server import WebServer
 from my_htag_app import MyApp
 
-main_app = FastAPI()
+main_app = Starlette()
 
 # Wrap your htag App in a WebServer
 htag_server = WebServer(MyApp)
@@ -43,9 +44,9 @@ htag_server = WebServer(MyApp)
 # Mount or include routes
 main_app.mount("/htag", htag_server.app)
 
-@main_app.get("/health")
-def health():
-    return {"status": "ok"}
+@main_app.route("/health")
+def health(request):
+    return JSONResponse({"status": "ok"})
 ```
 
 ## Performance & Scalability

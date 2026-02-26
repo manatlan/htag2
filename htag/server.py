@@ -6,8 +6,10 @@ import uuid
 import inspect
 import logging
 from typing import Any, Dict, Optional, Union, List, Callable, Type, Set
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Response, Cookie
-from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse
+from starlette.applications import Starlette
+from starlette.websockets import WebSocket, WebSocketDisconnect
+from starlette.requests import Request
+from starlette.responses import HTMLResponse, FileResponse, StreamingResponse, Response, JSONResponse
 from .core import GTag
 
 logger = logging.getLogger("htag2")
@@ -260,7 +262,7 @@ class WebServer:
         self.tag_entity = tag_entity # Class or Instance
         self.on_instance = on_instance # Optional callback(instance)
         self.instances: Dict[str, 'App'] = {} # sid -> App instance
-        self.app = FastAPI()
+        self.app = Starlette()
         self._setup_routes()
 
     def _get_instance(self, sid: str) -> 'App':
@@ -284,8 +286,8 @@ class WebServer:
         return self.instances[sid]
 
     def _setup_routes(self) -> None:
-        @self.app.get("/")
-        async def index(htag_sid: Optional[str] = Cookie(None)):
+        async def index(request: Request):
+            htag_sid: Optional[str] = request.cookies.get("htag_sid")
             if htag_sid is None:
                 htag_sid = str(uuid.uuid4())
             
@@ -294,10 +296,7 @@ class WebServer:
             res.set_cookie("htag_sid", htag_sid)
             return res
 
-        @self.app.get("/favicon.ico")
-        @self.app.get("/logo.png")
-        @self.app.get("/logo.jpg")
-        async def favicon():
+        async def favicon(request: Request):
             # Try to find the logo with different common extensions
             for ext in ["png", "jpg", "jpeg", "ico"]:
                 logo_path = os.path.join(os.getcwd(), f"docs/assets/logo.{ext}")
@@ -305,7 +304,6 @@ class WebServer:
                     return FileResponse(logo_path)
             return Response(status_code=204)
 
-        @self.app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket):
             htag_sid: Optional[str] = websocket.cookies.get("htag_sid")
             if htag_sid:
@@ -314,16 +312,16 @@ class WebServer:
             else:
                 await websocket.close()
 
-        @self.app.get("/stream")
-        async def stream_endpoint(request: Request, htag_sid: Optional[str] = Cookie(None)):
+        async def stream_endpoint(request: Request):
+            htag_sid: Optional[str] = request.cookies.get("htag_sid")
             if not htag_sid:
                 return Response(status_code=400, content="No session cookie")
                 
             instance = self._get_instance(htag_sid)
             return StreamingResponse(instance._handle_sse(request), media_type="text/event-stream")
 
-        @self.app.post("/event")
-        async def event_endpoint(request: Request, htag_sid: Optional[str] = Cookie(None)):
+        async def event_endpoint(request: Request):
+            htag_sid: Optional[str] = request.cookies.get("htag_sid")
             if not htag_sid:
                 return Response(status_code=400, content="No session cookie")
                 
@@ -333,10 +331,18 @@ class WebServer:
                 # Run the event in the background to not block the HTTP response
                 # Broadcast will trigger async queues anyway
                 asyncio.create_task(instance.handle_event(msg, None))
-                return {"status": "ok"}
+                return JSONResponse({"status": "ok"})
             except Exception as e:
                 logger.error("POST event error: %s", e)
                 return Response(status_code=500, content=str(e))
+
+        self.app.add_route("/", index)
+        self.app.add_route("/favicon.ico", favicon)
+        self.app.add_route("/logo.png", favicon)
+        self.app.add_route("/logo.jpg", favicon)
+        self.app.add_websocket_route("/ws", websocket_endpoint)
+        self.app.add_route("/stream", stream_endpoint)
+        self.app.add_route("/event", event_endpoint, methods=["POST"])
 
 # --- App ---
 
@@ -356,8 +362,8 @@ class App(GTag):
         self.sent_statics: Set[str] = set() # Track assets already in browser
 
     @property
-    def app(self) -> FastAPI:
-        """Property for backward compatibility: returns a FastAPI instance hosting this App."""
+    def app(self) -> Starlette:
+        """Property for backward compatibility: returns a Starlette instance hosting this App."""
         if not hasattr(self, "_app_host"):
             self._app_host = WebServer(self)
         return self._app_host.app
