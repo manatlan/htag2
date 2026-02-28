@@ -23,10 +23,12 @@ if __name__ == "__main__":
 
 When a user visits the site, `htag` generates a unique session ID and creates a private instance of `MyMultiUserApp` for them.
 
-You can bundle CSS and JavaScript with your components using the `statics` attribute.
+## Global Statics (`Tag.statics`)
+
+You can bundle global dependencies, external CSS, and JavaScript with your components using the `statics` class attribute.
 
 > [!TIP]
-> For component-specific CSS, the [Scoped Styles](components.md#scoped-styles) feature is usually preferred as it automatically handles CSS isolation.
+> For component-specific CSS, the [Scoped Styles](components.md#scoped-styles) feature is usually preferred as it automatically handles CSS isolation securely.
 
 ```python
 class StyledComponent(Tag.div):
@@ -37,10 +39,10 @@ class StyledComponent(Tag.div):
     ]
 ```
 
-`htag` ensures that statics are:
+`htag2` ensures that statics are:
 
 - Collected recursively from all active tags, including those created dynamically via reactive lambdas.
-- Sent to the client only once per session.
+- Sent to the client only once per session, regardless of how many instances of the component exist.
 - Injected into the `<head>` dynamically if they are added after the initial load.
 
 ## Performance Best Practices

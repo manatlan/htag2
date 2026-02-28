@@ -142,6 +142,23 @@ The generated CSS will be `.htag-MyCard .title { ... }` — no style leaking. Th
 > Tag.div(_class=lambda: "on" if s.value else "off")  # reactive
 > ```
 
+### Global Statics (`Tag.statics`)
+In addition to scoped styles, you can inject global dependencies or static assets (like external CSS/JS) for a specific component using the class attribute `statics`.
+- `statics` must be a list of `Tag` elements (usually `Tag.script` or `Tag.style` or `Tag.link`).
+- These elements are injected into the HTML `<head>` exactly once, regardless of how many instances of the component you create.
+- This is useful for importing external libraries (Tailwind, Bootstrap, custom fonts, leaflet JS, etc.) required specifically by one of your components:
+
+```python
+class MapWidget(Tag.div):
+    statics = [
+        Tag.link(_rel="stylesheet", _href="https://unpkg.com/leaflet/dist/leaflet.css"),
+        Tag.script(_src="https://unpkg.com/leaflet/dist/leaflet.js")
+    ]
+    
+    def init(self):
+        self.id = "map-container"
+```
+
 ### Event Control
 Use decorators to control event behavior:
 - `@prevent`: Calls `event.preventDefault()` on the client side.
