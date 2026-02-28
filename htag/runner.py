@@ -190,7 +190,7 @@ class ChromeApp:
             self._run_with_reloader(host=host, port=port)
             return
 
-        from .server import WebServer
+        from .server import WebApp
 
         def on_inst(inst: "App") -> None:
             inst.exit_on_disconnect = True
@@ -200,7 +200,7 @@ class ChromeApp:
         if not inspect.isclass(self.app):
             self.app.exit_on_disconnect = True
 
-        ws = WebServer(self.app, on_instance=on_inst)
+        ws = WebApp(self.app, on_instance=on_inst)
         log_config = (
             None if getattr(sys, "frozen", False) else uvicorn.config.LOGGING_CONFIG
         )

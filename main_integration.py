@@ -1,9 +1,7 @@
-from htag import Tag
+from htag import Tag, WebApp
 from starlette.applications import Starlette
 from starlette.responses import HTMLResponse
 import uvicorn
-
-from htag.server import WebServer
 
 # Create htag app
 class MyApp(Tag.App):
@@ -35,8 +33,8 @@ async def home(request):
     """)
 
 # mount htag app (Multi-Session mode)
-# By passing the CLASS 'MyApp', WebServer will create one instance per session.
-app.mount("/app", WebServer(MyApp).app) 
+# By passing the CLASS 'MyApp', WebApp will create one instance per session.
+app.mount("/app", WebApp(MyApp).app) 
 
 if __name__ == "__main__":
     print("🚀 Server started at http://127.0.0.1:8000")

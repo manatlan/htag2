@@ -28,21 +28,21 @@ uvicorn app:app --host 0.0.0.0 --port 80
 
 ## Embedding htag in existing Starlette/FastAPI apps
 
-Since `htag` uses a `WebServer` wrapper, you can also mount it as a sub-application or include its routes in a larger Starlette or FastAPI project.
+Since `htag` uses a `WebApp` wrapper, you can also mount it as a sub-application or include its routes in a larger Starlette or FastAPI project.
 
 ```python
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
-from htag.server import WebServer
+from htag.server import WebApp
 from my_htag_app import MyApp
 
 main_app = Starlette()
 
-# Wrap your htag App in a WebServer
-htag_server = WebServer(MyApp)
+# Wrap your htag App in a WebApp
+htag_app = WebApp(MyApp)
 
 # Mount or include routes
-main_app.mount("/htag", htag_server.app)
+main_app.mount("/htag", htag_app.app)
 
 @main_app.route("/health")
 def health(request):

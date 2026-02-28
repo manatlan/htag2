@@ -1,6 +1,6 @@
 import pytest
 from starlette.testclient import TestClient
-from htag.server import WebServer
+from htag.server import WebApp
 from htag import Tag
 
 class MyApp(Tag.App):
@@ -12,7 +12,7 @@ class MyApp(Tag.App):
 
 def test_multi_session_logic():
     """Verify that passing a class creates unique instances for different sids."""
-    server = WebServer(MyApp)
+    server = WebApp(MyApp)
     
     # Simulate User 1
     client1 = TestClient(server.app)
@@ -29,7 +29,7 @@ def test_multi_session_logic():
     assert sid2 is not None
     assert sid1 != sid2
     
-    # Verify they have different instances in WebServer
+    # Verify they have different instances in WebApp
     inst1 = server._get_instance(sid1)
     inst2 = server._get_instance(sid2)
     assert inst1 is not inst2
@@ -39,7 +39,7 @@ def test_multi_session_logic():
 def test_single_instance_logic():
     """Verify that passing an instance shares it among all sids (backward compatibility)."""
     shared_app = MyApp()
-    server = WebServer(shared_app)
+    server = WebApp(shared_app)
     
     client1 = TestClient(server.app)
     res1 = client1.get("/")
@@ -61,7 +61,7 @@ def test_on_instance_callback():
         initialized.append(inst)
         inst.initialized = True
         
-    server = WebServer(MyApp, on_instance=my_init)
+    server = WebApp(MyApp, on_instance=my_init)
     client = TestClient(server.app)
     
     # Trigger instance creation
@@ -79,7 +79,7 @@ def test_on_instance_callback():
 
 def test_favicon_route():
     """Verify the silent favicon route exists."""
-    server = WebServer(MyApp)
+    server = WebApp(MyApp)
     client = TestClient(server.app)
     res = client.get("/favicon.ico")
     # It should return 200 (if logo exists) or 204 (if not)

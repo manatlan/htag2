@@ -2,7 +2,7 @@ import pytest
 import asyncio
 import json
 from unittest.mock import MagicMock, AsyncMock
-from htag.server import Event, WebServer
+from htag.server import Event, WebApp
 from htag import Tag
 
 App = Tag.App # Alias for tests
@@ -399,10 +399,10 @@ async def test_handle_websocket_lifecycle():
 
 @pytest.mark.asyncio
 async def test_websocket_route_coverage():
-    from htag.server import WebServer
+    from htag.server import WebApp
     from starlette.testclient import TestClient
     
-    server = WebServer(App)
+    server = WebApp(App)
     client = TestClient(server.app)
     
     # Need to get a session first to have the cookie

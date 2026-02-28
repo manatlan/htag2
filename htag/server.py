@@ -282,10 +282,10 @@ function htag_event(id, event_name, event) {
 }
 """
 
-# --- WebServer ---
+# --- WebApp ---
 
 
-class WebServer:
+class WebApp:
     """
     FastAPI implementation for hosting one or more App sessions.
     Handles the HTTP initial render and the WebSocket communication.
@@ -411,7 +411,7 @@ class App(GTag):
     def app(self) -> Starlette:
         """Property for backward compatibility: returns a Starlette instance hosting this App."""
         if not hasattr(self, "_app_host"):
-            self._app_host = WebServer(self)
+            self._app_host = WebApp(self)
         return self._app_host.app
 
     def _render_page(self) -> str:

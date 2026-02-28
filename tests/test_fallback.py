@@ -3,7 +3,7 @@ from starlette.testclient import TestClient
 import asyncio
 import json
 from htag import Tag
-from htag.server import WebServer
+from htag.server import WebApp
 
 class MyMockApp(Tag.App):
     def __init__(self):
@@ -21,7 +21,7 @@ class MyMockApp(Tag.App):
 
 @pytest.fixture
 def test_client():
-    ws = WebServer(MyMockApp)
+    ws = WebApp(MyMockApp)
     # Fastapi TestClient doesn't fully support async streams the way uvicorn does natively
     # but we can test the synchronous behavior and simple generator properties
     return TestClient(ws.app)
@@ -41,9 +41,9 @@ async def test_fallback_cycle():
     """Test the full HTTP fallback lifecycle using AsyncClient for Server-Sent Events"""
     # TestClient doesn't handle StreamingResponses well without deadlocks,
     # so we'll test the raw server logic using httpx async client if needed, or
-    # directly call the WebServer routing methods.
+    # directly call the WebApp routing methods.
     
-    server = WebServer(MyMockApp)
+    server = WebApp(MyMockApp)
     
     # 1. Simulate initial home page load to get cookie
     from starlette.requests import Request
