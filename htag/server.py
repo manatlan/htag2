@@ -19,7 +19,7 @@ from starlette.responses import (
     Response,
     JSONResponse,
 )
-from .core import GTag
+from .core import GTag, current_request
 
 logger = logging.getLogger("htag")
 
@@ -300,7 +300,7 @@ class WebApp:
     def __init__(
         self,
         tag_entity: type[App] | App,
-        on_instance: Callable[[App], None] | None = None,
+        on_instance: Callable[[App, Request | WebSocket], None] | None = None,
         debug: bool = True,
     ) -> None:
         self._lock = threading.Lock()
@@ -311,29 +311,42 @@ class WebApp:
         self.app = Starlette()
         self._setup_routes()
 
-    def _get_instance(self, sid: str) -> "App":
+    def _get_instance(self, sid: str, request_or_ws: Request | WebSocket) -> "App":
         if sid not in self.instances:
             with self._lock:
                 if sid not in self.instances:
-                    if inspect.isclass(self.tag_entity):
-                        self.instances[sid] = self.tag_entity()
-                        logger.info("Created new session instance for sid: %s", sid)
-                    else:
-                        # tag_entity is an App instance
-                        self.instances[sid] = self.tag_entity  # type: ignore
-                        logger.info("Using shared instance for session sid: %s", sid)
+                    token = current_request.set(request_or_ws)
+                    try:
+                        if inspect.isclass(self.tag_entity):
+                            self.instances[sid] = self.tag_entity()
+                            logger.info("Created new session instance for sid: %s", sid)
+                        else:
+                            # tag_entity is an App instance
+                            self.instances[sid] = self.tag_entity  # type: ignore
+                            logger.info("Using shared instance for session sid: %s", sid)
 
-                    if self.on_instance:
-                        self.on_instance(self.instances[sid])
+                        if self.on_instance:
+                            # Check if it's the old signature (1 arg) or new (2 args)
+                            sig = inspect.signature(self.on_instance)
+                            if len(sig.parameters) == 1:
+                                self.on_instance(self.instances[sid])  # type: ignore
+                            else:
+                                self.on_instance(self.instances[sid], request_or_ws)
 
-                    # Propagate debug mode
-                    self.instances[sid].debug = self.debug
+                        # Propagate debug mode
+                        self.instances[sid].debug = self.debug
 
-                    # Store a backlink to the webserver for session-aware logic
-                    setattr(self.instances[sid], "_webserver", self)
+                        # Store a backlink to the webserver for session-aware logic
+                        setattr(self.instances[sid], "_webserver", self)
 
-                    # Trigger lifecycle mount on the root App instance
-                    self.instances[sid]._trigger_mount()
+                        # Trigger lifecycle mount on the root App instance
+                        self.instances[sid]._trigger_mount()
+                    finally:
+                        current_request.reset(token)
+
+        # Always update the current request object on the instance
+        # to ensure session data is fresh for the current interaction
+        setattr(self.instances[sid], "_request", request_or_ws)
 
         return self.instances[sid]
 
@@ -343,10 +356,14 @@ class WebApp:
             if htag_sid is None:
                 htag_sid = str(uuid.uuid4())
 
-            instance = self._get_instance(htag_sid)
-            res = HTMLResponse(instance._render_page())
-            res.set_cookie("htag_sid", htag_sid)
-            return res
+            instance = self._get_instance(htag_sid, request)
+            token = current_request.set(request)
+            try:
+                res = HTMLResponse(instance._render_page())
+                res.set_cookie("htag_sid", htag_sid)
+                return res
+            finally:
+                current_request.reset(token)
 
         async def favicon(request: Request) -> Response:
             import base64
@@ -355,8 +372,12 @@ class WebApp:
         async def websocket_endpoint(websocket: WebSocket) -> None:
             htag_sid: str | None = websocket.cookies.get("htag_sid")
             if htag_sid:
-                instance = self._get_instance(htag_sid)
-                await instance._handle_websocket(websocket)
+                instance = self._get_instance(htag_sid, websocket)
+                token = current_request.set(websocket)
+                try:
+                    await instance._handle_websocket(websocket)
+                finally:
+                    current_request.reset(token)
             else:
                 await websocket.close()
 
@@ -365,17 +386,22 @@ class WebApp:
             if not htag_sid:
                 return Response(status_code=400, content="No session cookie")
 
-            instance = self._get_instance(htag_sid)
-            return StreamingResponse(
-                instance._handle_sse(request), media_type="text/event-stream"
-            )
+            instance = self._get_instance(htag_sid, request)
+            token = current_request.set(request)
+            try:
+                return StreamingResponse(
+                    instance._handle_sse(request), media_type="text/event-stream"
+                )
+            finally:
+                current_request.reset(token)
 
         async def event_endpoint(request: Request) -> Response:
             htag_sid: str | None = request.cookies.get("htag_sid")
             if not htag_sid:
                 return Response(status_code=400, content="No session cookie")
 
-            instance = self._get_instance(htag_sid)
+            instance = self._get_instance(htag_sid, request)
+            token = current_request.set(request)
             try:
                 msg = await request.json()
                 # Run the event in the background to not block the HTTP response
@@ -385,6 +411,8 @@ class WebApp:
             except Exception as e:
                 logger.error("POST event error: %s", e)
                 return Response(status_code=500, content=str(e))
+            finally:
+                current_request.reset(token)
 
         self.app.add_route("/", index)
         self.app.add_route("/favicon.ico", favicon)

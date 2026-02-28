@@ -99,7 +99,24 @@ htag2 automatically binds input events to Python.
 ### 6. Resiliency & Fallback
 The `htag/server.py` implementation is fully robust against network irregularities:
 - **WebSocket to HTTP Fallback**: If a WebSocket drops or fails to connect, the Javascript bridge automatically falls back to utilizing standard HTTP POST requests (`/event`) and Server-Sent Events (`/stream`).
-- **Graceful Reconnections**: A user pressing F5 will not kill the server thread. The server only exits when the browser tab is explicitly closed or navigates away cleanly without returning within the 1-second reconnect window. ### 7. Debug Mode & Error Visualization
+- **Graceful Reconnections**: A user pressing F5 will not kill the server thread. The server only exits when the browser tab is explicitly closed or navigates away cleanly without returning within the 1-second reconnect window. 
+
+### 7. Session & Request Integration
+When using `WebApp`, every tag has access to the current Starlette `Request` or `WebSocket` via the **`self.request`** property. This allows for direct access to the session, headers, and other request data.
+
+```python
+class MyComponent(Tag.div):
+    def init(self):
+        # Access the Starlette session directly!
+        username = self.request.session.get("user", "Guest")
+        self <= f"Hello {username}"
+
+    def on_click(self, e):
+        # Mutate the session
+        self.request.session["last_click"] = "now"
+```
+
+### 8. Debug Mode & Error Visualization
 htag2 includes a built-in visual aid mechanism to help developers track bugs:
 - **`Runner(App, debug=True)` (Default)**: During development, ANY error that occurs (a Python exception in a callback, a JavaScript error, or a network disconnection) is visually reported via a Shadow DOM overlay in the screen (displaying js/traceback errors).
 - **`Runner(App, debug=False)`**: Use this for production. Tracebacks are logged internally on the server, and only generic "Internal Server Error" messages are shown in the client UI to prevent sensitive data leakage.

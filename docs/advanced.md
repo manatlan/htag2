@@ -23,6 +23,21 @@ if __name__ == "__main__":
 
 When a user visits the site, `htag` generates a unique session ID and creates a private instance of `MyMultiUserApp` for them.
 
+### Session & Request Integration
+When using `WebApp`, every tag has access to the current Starlette `Request` or `WebSocket` via the **`self.request`** property. This is updated on every interaction, allowing you to easily access or mutate the session:
+
+```python
+class MyMultiUserApp(Tag.App):
+    def init(self) -> None:
+        # Access the Starlette session directly!
+        username = self.request.session.get("user", "Guest")
+        self <= Tag.h2(f"Welcome, {username}!")
+
+    def on_click(self, e):
+        # Mutate the session
+        self.request.session["last_active"] = "just now"
+```
+
 ## Global Statics (`Tag.statics`)
 
 You can bundle global dependencies, external CSS, and JavaScript with your components using the `statics` class attribute.

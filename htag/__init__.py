@@ -1,4 +1,4 @@
-from .core import Tag, prevent, stop, State
+from .core import Tag, prevent, stop, State, current_request
 from .server import WebApp
 from .runner import ChromeApp
 import logging

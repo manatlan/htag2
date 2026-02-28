@@ -4,6 +4,7 @@ import html
 import logging
 import threading
 import weakref
+import contextvars
 from typing import Any, Callable
 
 
@@ -20,6 +21,9 @@ class _HtagLocal(threading.local):
 _ctx = _HtagLocal()
 
 logger = logging.getLogger("htag")
+
+# Global context for passing the current request/websocket object
+current_request: contextvars.ContextVar[Any] = contextvars.ContextVar("current_request", default=None)
 
 # Cache for scoped CSS: maps class -> (scope_class_name, scoped_css_string)
 _scoped_style_cache: dict[type, tuple[str, str]] = {}
@@ -371,6 +375,19 @@ class GTag:  # aka "Generic Tag"
                 return current
             current = current.parent
         return None
+
+    @property
+    def request(self) -> Any:
+        """Returns the current Request/WebSocket object (if available)."""
+        # 1. Try to get it from the root instance (if set by server)
+        root = self.root
+        if root is not None:
+            r = getattr(root, "_request", None)
+            if r is not None:
+                return r
+
+        # 2. Fallback to the current context (useful during init/instantiation)
+        return current_request.get()
 
     @property
     def text(self) -> str:
