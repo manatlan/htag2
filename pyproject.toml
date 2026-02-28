@@ -24,6 +24,7 @@ classifiers = [
 ]
 
 dependencies = [
+    "python-multipart>=0.0.22",
     "starlette>=0.40.0",
     "uvicorn>=0.40.0",
     "websockets>=16.0",
