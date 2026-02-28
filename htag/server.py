@@ -38,6 +38,7 @@ CLIENT_JS = """
 var ws;
 var use_fallback = false;
 var sse;
+var _base_path = window.location.pathname.endsWith("/") ? window.location.pathname : window.location.pathname + "/";
 window._htag_callbacks = {}; // Store promise resolvers
 
 // --- htag-error Web Component (Shadow DOM for style isolation) ---
@@ -108,7 +109,8 @@ window.onunhandledrejection = function(event) {
 
 
 function init_ws() {
-    ws = new WebSocket("ws://" + window.location.host + "/ws");
+    var ws_protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+    ws = new WebSocket(ws_protocol + window.location.host + _base_path + "ws");
     
     ws.onopen = function() {
         console.log("htag: websocket connected");
@@ -200,7 +202,7 @@ function fallback() {
         return; // Don't try SSE, we just want to reload the page when the server comes back
     }
 
-    sse = new window.EventSource("/stream");
+    sse = new window.EventSource(_base_path + "stream");
     sse.onopen = () => console.log("htag: SSE connected");
     sse.onmessage = function(event) {
         handle_payload(JSON.parse(event.data));
@@ -246,7 +248,7 @@ function htag_event(id, event_name, event) {
         // Use HTTP POST Fallback
         // (Fastest trigger even if SSE is still initializing)
         if (!use_fallback) fallback();
-        fetch("/event", {
+        fetch(_base_path + "event", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify(payload)

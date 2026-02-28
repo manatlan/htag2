@@ -77,6 +77,9 @@ htag2 supports both traditional "dirty-marking" and modern reactive `State`.
 
 **Traditional Reactivity (HTML Attributes & Events)**:
 - **HTML Attributes**: MUST start with `_` to be rendered as HTML attributes and trigger updates.
+  - **In Tag Constructors**: `Tag.div(_class="btn", _id="myid")`
+  - **Direct Assignment on `self`**: Use the underscore prefix: `self._style = "color:red"`, `self._disabled = True`.
+  - **Why?**: Assigning to `self.style` (without underscore) merely sets a private Python attribute that won't be rendered in HTML.
   - Correct: `_class="btn"`, `_src="image.png"`, `_type="checkbox"`
   - Incorrect: `class="btn"`, `src="image.png"`
 - **Events**: Properties starting with `_on` are mapped to Python callbacks.
