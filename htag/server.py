@@ -23,6 +23,9 @@ from .core import GTag
 
 logger = logging.getLogger("htag")
 
+# Embedded logo (PNG base64 encoded)
+from .logo import LOGO_PNG_B64
+
 
 class Event:
     """
@@ -346,12 +349,8 @@ class WebApp:
             return res
 
         async def favicon(request: Request) -> Response:
-            # Try to find the logo with different common extensions
-            for ext in ["png", "jpg", "jpeg", "ico"]:
-                logo_path = os.path.join(os.getcwd(), f"docs/assets/logo.{ext}")
-                if os.path.exists(logo_path):
-                    return FileResponse(logo_path)
-            return Response(status_code=204)
+            import base64
+            return Response(content=base64.b64decode(LOGO_PNG_B64), media_type="image/png")
 
         async def websocket_endpoint(websocket: WebSocket) -> None:
             htag_sid: str | None = websocket.cookies.get("htag_sid")

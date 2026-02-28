@@ -15,8 +15,8 @@ def test_tag_creator_multiple_underscores():
     assert str(t).startswith("<my-custom-web-component")
 
 def test_gtag_direct_hyphenation():
-    # GTag("some_tag") should result in "some-tag"
-    t = GTag("some_tag")
+    # Tag.some_tag() should result in "some-tag"
+    t = Tag.some_tag()
     assert t.tag == "some-tag"
     assert str(t).startswith("<some-tag")
 
@@ -25,6 +25,6 @@ def test_no_underscore_still_works():
     d = Tag.div()
     assert d.tag == "div"
     
-    # GTag("span") should still be "span"
-    s = GTag("span")
+    # Tag.span() should still be "span"
+    s = Tag.span()
     assert s.tag == "span"

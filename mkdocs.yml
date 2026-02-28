@@ -4,6 +4,13 @@ site_description: Build modern web apps in Python
 repo_url: https://github.com/manatlan/htag2
 repo_name: manatlan/htag2
 
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/manatlan/htag2
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/htag2/
+
 theme:
   name: material
   logo: assets/logo.png
@@ -37,6 +44,10 @@ theme:
 plugins:
   - search
   - mkdocstrings
+  - social:
+      cards_layout_options:
+        background_color: "#1e293b"
+        color: "#ffffff"
 
 nav:
   - Home: index.md

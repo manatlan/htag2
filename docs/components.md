@@ -85,7 +85,7 @@ Attributes are managed using properties starting with an underscore. This mappin
 
 ```python
 # Mapping attributes
-img = Tag.img(_src="logo.png", _alt="Logo")
+img = Tag.img(_src="/logo.png", _alt="Logo")
 img._width = "100"
 
 # Custom data attributes

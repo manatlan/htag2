@@ -40,7 +40,7 @@ def test_gtag_on_mount_unmount_app():
     assert child.unmounts == 1
 
     # Adding a nested structure to the app
-    parent_tag = GTag("div")
+    parent_tag = Tag.div()
     parent_tag += child
     assert child.mounts == 1 # still 1 because parent isn't in tree yet
     assert child.unmounts == 1

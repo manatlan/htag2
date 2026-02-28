@@ -1,7 +1,7 @@
 from htag.core import GTag, Tag, prevent, stop, State
 
 def test_gtag_init():
-    t = GTag("div", "hello")
+    t = Tag.div("hello")
     assert t.tag == "div"
     assert "hello" in t.childs
     assert t.id is not None
@@ -9,7 +9,7 @@ def test_gtag_init():
 
 def test_gtag_fallback_tag():
     # If first arg is a string and no tag defined, it becomes the tag
-    t = GTag("my-custom-tag", "hello")
+    t = Tag.my_custom_tag("hello")
     assert t.tag == "my-custom-tag"
     assert "hello" in t.childs
     
@@ -18,8 +18,8 @@ def test_gtag_fallback_tag():
     assert t2.tag == "div"
 
 def test_gtag_add_remove():
-    t = GTag("div")
-    child = GTag("span")
+    t = Tag.div()
+    child = Tag.span()
     t._GTag__dirty = False
     t.add(child)
     assert child in t.childs
@@ -33,14 +33,14 @@ def test_gtag_add_remove():
     assert t._GTag__dirty is True
 
 def test_gtag_clear():
-    t = GTag("div", "one", "two")
+    t = Tag.div("one", "two")
     t._GTag__dirty = False
     t.clear()
     assert len(t.childs) == 0
     assert t._GTag__dirty is True
 
 def test_gtag_attr_magic():
-    t = GTag("div", _class="foo", _data_id="123")
+    t = Tag.div(_class="foo", _data_id="123")
     assert t._class == "foo"
     assert t._GTag__attrs["class"] == "foo"
     assert t._GTag__attrs["data_id"] == "123"
@@ -60,7 +60,7 @@ def test_gtag_attr_magic():
     assert "mouseover" in t._GTag__events
 
 def test_gtag_render_attrs():
-    t = GTag("div", _class="foo", _data_id="123")
+    t = Tag.div(_class="foo", _data_id="123")
     rendered = t._render_attrs()
     assert 'class="foo"' in rendered
     assert 'data-id="123"' in rendered
@@ -68,7 +68,7 @@ def test_gtag_render_attrs():
 
 def test_gtag_events():
     def my_handler(e): pass
-    t = GTag("button", _onclick=my_handler, _onmouseover="alert(1)")
+    t = Tag.button(_onclick=my_handler, _onmouseover="alert(1)")
     assert "click" in t._GTag__events
     assert t._GTag__events["click"] == my_handler
     
@@ -106,7 +106,7 @@ def test_decorators():
     assert handle_s._htag_stop is True
 
 def test_gtag_str():
-    t = GTag("div", "content")
+    t = Tag.div("content")
     t.id = "fixme"
     assert str(t) == '<div id="fixme">content</div>'
     
@@ -116,7 +116,7 @@ def test_gtag_str():
 
 def test_gtag_list_addition():
     # Test lines 111-113 and 116-118
-    t = GTag("div")
+    t = Tag.div()
     l = [1, 2]
     res = t + l
     assert res == [t, 1, 2]
@@ -133,7 +133,7 @@ def test_gtag_list_addition():
 
 def test_add_class():
     # Test lines 140-146
-    t = GTag("div")
+    t = Tag.div()
     t.add_class("foo")
     assert t._class == "foo"
     t.add_class("bar")
@@ -142,7 +142,7 @@ def test_add_class():
     assert t._class == "foo bar"
 
 def test_remove_class():
-    t = GTag("div", _class="foo bar")
+    t = Tag.div(_class="foo bar")
     
     # Remove existing class
     class_self = t.remove_class("foo")
@@ -160,35 +160,35 @@ def test_remove_class():
     assert t._class == ""
 
 def test_gtag_iadd():
-    t = GTag("div")
+    t = Tag.div()
     t += "hello"
     assert "hello" in t.childs
 
 def test_gtag_add_list():
-    t = GTag("div")
+    t = Tag.div()
     t.add(["a", "b"])
     assert "a" in t.childs
     assert "b" in t.childs
 
 def test_gtag_call_js():
-    t = GTag("div")
+    t = Tag.div()
     t.call_js("alert(1)")
     assert "alert(1)" in t._GTag__js_calls
 
 def test_gtag_remove_self():
-    parent = GTag("div")
-    child = GTag("span")
+    parent = Tag.div()
+    child = Tag.span()
     parent.add(child)
     child.remove_self()
     assert child not in parent.childs
     assert child.parent is None
 
 def test_gtag_le():
-    t = GTag("div")
+    t = Tag.div()
     t <= "hello"
     assert "hello" in t.childs
     
-    child = GTag("span")
+    child = Tag.span()
     t <= child
     assert child in t.childs
     assert child.parent == t
@@ -216,10 +216,10 @@ def test_gtag_root():
     assert unattached_child.root is None
 
 def test_gtag_context_manager():
-    with GTag("div") as root:
-        with GTag("ul"):
-            GTag("li", "first")
-            GTag("li", "second")
+    with Tag.div() as root:
+        with Tag.ul():
+            Tag.li("first")
+            Tag.li("second")
     
     assert root.tag == "div"
     assert len(root.childs) == 1
@@ -232,7 +232,7 @@ def test_gtag_context_manager():
     assert "second" in ul.childs[1].childs
 
 def test_gtag_text_property():
-    t = GTag("div", "Hello", GTag("b", " World"), "!")
+    t = Tag.div("Hello", Tag.b(" World"), "!")
     # Getter should extract only the strings
     assert t.text == "Hello!"
     
@@ -249,7 +249,7 @@ def test_gtag_text_property():
 def test_gtag_reactive_state():
     counter = State(0)
     
-    t = GTag("div")
+    t = Tag.div()
     t <= (lambda: f"Count: {counter.value}")
     
     assert str(t) == f'<div id="{t.id}">Count: 0</div>'
@@ -266,9 +266,9 @@ def test_gtag_reactive_state():
     assert str(t) == f'<div id="{t.id}">Count: 1</div>'
 
 def test_gtag_reparenting_and_duplicates():
-    p1 = GTag("div")
-    p2 = GTag("section")
-    c = GTag("span")
+    p1 = Tag.div()
+    p2 = Tag.section()
+    c = Tag.span()
     
     # Reparenting
     p1.add(c)
@@ -283,7 +283,7 @@ def test_gtag_reparenting_and_duplicates():
     assert p2.childs[0] == c
 
 def test_toggle_class():
-    t = GTag("div", _class="foo bar")
+    t = Tag.div(_class="foo bar")
     
     # Toggle off existing class
     result = t.toggle_class("foo")
@@ -299,19 +299,19 @@ def test_toggle_class():
     assert t._class == "bar"
 
 def test_has_class():
-    t = GTag("div", _class="foo bar")
+    t = Tag.div(_class="foo bar")
     assert t.has_class("foo") is True
     assert t.has_class("bar") is True
     assert t.has_class("baz") is False
     
     # Empty class
-    t2 = GTag("div")
+    t2 = Tag.div()
     assert t2.has_class("anything") is False
 
 def test_state_notify():
     """State.notify() should mark observers dirty even without value change."""
     items = State([1, 2, 3])
-    t = GTag("div")
+    t = Tag.div()
     t <= (lambda: f"Count: {len(items.value)}")
     
     # Render to register observers
@@ -489,7 +489,7 @@ def test_scoped_style_dynamic_add():
         tag = "div"
         styles = ".label { font-size: 12px; }"
 
-    parent = GTag("section")
+    parent = Tag.section()
 
     # Dynamically create and add multiple instances
     for i in range(5):
@@ -507,7 +507,7 @@ def test_scoped_style_with_existing_statics():
     """Scoped styles coexist with class-level statics."""
     class WithStatics(GTag):
         tag = "div"
-        statics = [GTag("link", _rel="stylesheet", _href="app.css")]
+        statics = [Tag.link(_rel="stylesheet", _href="app.css")]
         styles = ".content { padding: 8px; }"
 
     w = WithStatics()
