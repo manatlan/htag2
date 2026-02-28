@@ -6,43 +6,41 @@ from htag import Tag, ChromeApp, State
 
 class Sidebar(Tag.div):
     """Navigation sidebar for quick access."""
-    statics = [
-        Tag.style("""
-            .sidebar {
-                width: 200px;
-                padding: 16px;
-                background: rgba(0,0,0,0.15);
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-                border-right: 1px solid rgba(255,255,255,0.05);
-            }
-            .sidebar-title {
-                font-size: 0.75rem;
-                font-weight: 600;
-                color: var(--text-dim);
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-                margin-bottom: 8px;
-                padding-left: 8px;
-            }
-            .nav-item {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                padding: 10px 12px;
-                border-radius: 8px;
-                cursor: pointer;
-                transition: all 0.2s;
-                font-size: 0.9rem;
-                color: var(--text);
-            }
-            .nav-item:hover {
-                background: var(--hover);
-                color: var(--primary);
-            }
-        """)
-    ]
+    styles = """
+        .sidebar {
+            width: 200px;
+            padding: 16px;
+            background: rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border-right: 1px solid rgba(255,255,255,0.05);
+        }
+        .sidebar-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+            padding-left: 8px;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+        .nav-item:hover {
+            background: var(--hover);
+            color: var(--primary);
+        }
+    """
     def init(self, go_to_callback):
         self._class = "sidebar"
         self <= Tag.div("Favorites", _class="sidebar-title")
@@ -54,60 +52,58 @@ class Sidebar(Tag.div):
 
 class Explorer(Tag.div):
     """Component responsible for listing files and folders."""
-    statics = [
-        Tag.style("""
-            .explorer {
-                flex: 1;
-                overflow-y: auto;
-                padding: 24px;
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-                gap: 16px;
-                align-content: start;
-            }
-            .item {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                padding: 20px 12px;
-                background: var(--surface);
-                border-radius: 12px;
-                cursor: pointer;
-                transition: all 0.2s;
-                border: 1px solid rgba(255,255,255,0.05);
-                text-align: center;
-            }
-            .item:hover {
-                background: var(--hover);
-                border-color: var(--primary);
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            }
-            .item.selected {
-                background: rgba(129, 193, 223, 0.15);
-                border-color: var(--primary);
-                box-shadow: 0 0 15px rgba(129, 193, 223, 0.2);
-            }
-            .icon {
-                font-size: 2.5rem;
-                margin-bottom: 12px;
-                filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
-            }
-            .item.folder .icon { color: var(--accent); }
-            .item.file .icon { color: var(--primary); }
-            .item .info { width: 100%; }
-            .item .name { 
-                display: block; 
-                font-weight: 500; 
-                font-size: 0.85rem; 
-                white-space: nowrap; 
-                overflow: hidden; 
-                text-overflow: ellipsis; 
-                color: var(--text);
-            }
-            .item .details { display: block; font-size: 0.7rem; color: var(--text-dim); margin-top: 4px; }
-        """)
-    ]
+    styles = """
+        .explorer {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            align-content: start;
+        }
+        .item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 12px;
+            background: var(--surface);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid rgba(255,255,255,0.05);
+            text-align: center;
+        }
+        .item:hover {
+            background: var(--hover);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .item.selected {
+            background: rgba(129, 193, 223, 0.15);
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(129, 193, 223, 0.2);
+        }
+        .icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+        }
+        .item.folder .icon { color: var(--accent); }
+        .item.file .icon { color: var(--primary); }
+        .item .info { width: 100%; }
+        .item .name { 
+            display: block; 
+            font-weight: 500; 
+            font-size: 0.85rem; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            color: var(--text);
+        }
+        .item .details { display: block; font-size: 0.7rem; color: var(--text-dim); margin-top: 4px; }
+    """
 
     def init(self, path, selected_file, select_callback):
         self._class="explorer"
@@ -156,72 +152,70 @@ class Explorer(Tag.div):
 
 class Viewer(Tag.div):
     """Component responsible for previewing file content."""
-    statics = [
-        Tag.style("""
-            .preview-panel {
-                width: 500px;
-                background: var(--surface);
-                display: flex;
-                flex-direction: column;
-                border-left: 1px solid rgba(129,193,223,0.3);
-                animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-                height: 100%;
-                box-shadow: -10px 0 30px rgba(0,0,0,0.3);
-                z-index: 50;
-            }
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            .preview-header {
-                padding: 20px 24px;
-                background: var(--surface-light);
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-            }
-            .preview-title {
-                font-weight: 600;
-                font-size: 1rem;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                color: var(--primary);
-            }
-            .preview-content {
-                flex: 1;
-                overflow: auto;
-                padding: 24px;
-                font-family: 'Fira Code', monospace;
-                font-size: 0.8rem;
-                line-height: 1.6;
-                white-space: pre;
-                background: #0f171e;
-                color: #a0aec0;
-                border-radius: 0 0 0 12px;
-            }
-            .close-btn {
-                background: rgba(255,255,255,0.05);
-                border: 1px solid rgba(255,255,255,0.1);
-                color: var(--text-dim);
-                font-size: 1rem;
-                cursor: pointer;
-                width: 32px;
-                height: 32px;
-                border-radius: 8px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: all 0.2s;
-            }
-            .close-btn:hover {
-                background: var(--error);
-                border-color: var(--error);
-                color: white;
-            }
-        """)
-    ]
+    styles = """
+        .preview-panel {
+            width: 500px;
+            background: var(--surface);
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid rgba(129,193,223,0.3);
+            animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            height: 100%;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.3);
+            z-index: 50;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .preview-header {
+            padding: 20px 24px;
+            background: var(--surface-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .preview-title {
+            font-weight: 600;
+            font-size: 1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--primary);
+        }
+        .preview-content {
+            flex: 1;
+            overflow: auto;
+            padding: 24px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            white-space: pre;
+            background: #0f171e;
+            color: #a0aec0;
+            border-radius: 0 0 0 12px;
+        }
+        .close-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-dim);
+            font-size: 1rem;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .close-btn:hover {
+            background: var(--error);
+            border-color: var(--error);
+            color: white;
+        }
+    """
 
     def init(self, file_path, close_callback):
         self._class="preview-panel"

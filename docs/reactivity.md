@@ -22,6 +22,18 @@ When updating state within a lambda (e.g., in an event callback), use `state.set
 Tag.button("+1", _onclick=lambda e: self.count.set(self.count.value + 1))
 ```
 
+### Mutable Values with `.notify()`
+
+When mutating a value in-place (e.g., appending to a list), the `State` can't detect the change automatically. Call `.notify()` to force observers to update:
+
+```python
+self.items = State(["a", "b"])
+
+def add_item(e):
+    self.items.value.append("c")
+    self.items.notify()  # triggers re-render
+```
+
 ## Reactive Children
 
 You can pass a lambda as a child to any tag. htag2 will automatically track which `State` objects are accessed during the lambda's execution and will re-render just that part of the UI when the state changes.

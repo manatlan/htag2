@@ -15,6 +15,8 @@
 - **Responsive**: Built-in support for multiple runners (Browser, Chrome App).
 - **Type-Safe**: Comprehensive type hints for a great developer experience.
 - **Modern HTML**: Native support for HTML5 void elements.
+- **Scoped Styles**: Simple, robust CSS scoping via the `styles` attribute.
+- **Class Helpers**: Convenient methods like `toggle_class()` and `has_class()`.
 
 ## Quick Start
 

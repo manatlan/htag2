@@ -2,12 +2,12 @@ from htag import Tag, State
 import logging
 
 class MessageBox(Tag.div):
-    statics = [Tag.style("""
+    styles = """ 
         .msgbox-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
         .msgbox-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); width: 450px; text-align: center; border-top: 6px solid #1a73e8; }
         .msgbox-title { margin-top: 0; color: #1a73e8; font-size: 1.8rem; margin-bottom: 15px; }
         .msgbox-text { margin-bottom: 30px; color: #4a5568; font-size: 1.1rem; line-height: 1.6; }
-    """)]
+    """ # SCOPED !!!!!!!!!!!!!!!!!!!!
     
     def init(self, title, message):
         self._class="msgbox-overlay"

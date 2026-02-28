@@ -23,9 +23,10 @@ if __name__ == "__main__":
 
 When a user visits the site, `htag` generates a unique session ID and creates a private instance of `MyMultiUserApp` for them.
 
-## Static Assets
-
 You can bundle CSS and JavaScript with your components using the `statics` attribute.
+
+> [!TIP]
+> For component-specific CSS, the [Scoped Styles](components.md#scoped-styles) feature is usually preferred as it automatically handles CSS isolation.
 
 ```python
 class StyledComponent(Tag.div):

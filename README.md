@@ -53,3 +53,6 @@ htag2 is a Python library for building web applications using HTML, CSS, and Jav
 *   **Reactive & Boolean Attributes**: Attributes like `_class`, `_style`, or `_disabled` now support lambdas for dynamic updates. Boolean attributes (e.g. `_disabled=True`) are correctly rendered as key-only or omitted.
 *   **Rapid Content Replacement (`.text`)**: Use the `.text` property on any tag to quickly replace its inner text content without needing to manually clear its children first.
 *   **Recursive Statics & JS**: Components created dynamically (via lambdas) now have their `statics` (CSS) and `call_js` commands correctly collected and sent to the client.
+*   **Scoped Styles (`styles`)**: Define a `styles` class attribute on any component to get automatically scoped CSS. The framework prefixes every rule with `.htag-ClassName`, handles `@media`, `@keyframes`, pseudo-selectors, and multi-selectors.
+*   **CSS Class Helpers**: `add_class()`, `remove_class()`, `toggle_class()`, and `has_class()` for convenient class manipulation without manual string handling.
+*   **`State.notify()`**: Manually trigger reactive updates after in-place mutations of mutable values (lists, dicts).

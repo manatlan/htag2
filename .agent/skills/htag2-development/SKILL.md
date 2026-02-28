@@ -133,7 +133,14 @@ class MyCard(Tag.div):
         self <= Tag.p("Styles are scoped!", _class="content")
 ```
 
-The generated CSS will be `.htag-MyCard .title { ... }` — no style leaking. The scoped `<style>` is injected once per class, even with multiple instances.
+The generated CSS will be `.htag-MyCard .title { ... }` — no style leaking. The scoped `<style>` is injected once per class, even with multiple instances. Supports `@media` queries, `@keyframes`, pseudo-selectors (`:hover`, `::before`), and comma-separated selectors.
+
+> **Note**: `styles` is **declarative** (class-level, processed once at init). For **dynamic** styling during interactions, use `_style`, `_class`, or class helpers:
+> ```python
+> self._style = "color: red;"              # inline style
+> self.toggle_class("active")              # toggle CSS class
+> Tag.div(_class=lambda: "on" if s.value else "off")  # reactive
+> ```
 
 ### Event Control
 Use decorators to control event behavior:

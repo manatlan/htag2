@@ -52,10 +52,21 @@ def _scope_css(css: str, scope_cls: str) -> str:
                         inner = body[body.index("{") + 1 : body.rindex("}")]
                         result.append(f"{selector} {{{_scope_css(inner, scope_cls)}}}")
                 else:
-                    # Prefix each comma-separated selector
+                    # For each selector, match both the root element itself and descendants
                     parts = [s.strip() for s in selector.split(",")]
-                    scoped_sel = ", ".join(f".{scope_cls} {p}" for p in parts if p)
-                    result.append(f"{scoped_sel} {body}")
+                    scoped_parts: list[str] = []
+                    for p in parts:
+                        if not p:
+                            continue
+                        # .htag-X.selector = root element itself (if selector is a class/id/pseudo)
+                        # selector.htag-X = root element itself (if selector is a tag)
+                        # .htag-X .selector = descendant elements
+                        if p[0] in (".", "#", ":", "["):
+                            scoped_parts.append(f".{scope_cls}{p}")
+                        else:
+                            scoped_parts.append(f"{p}.{scope_cls}")
+                        scoped_parts.append(f".{scope_cls} {p}")
+                    result.append(f"{', '.join(scoped_parts)} {body}")
 
     return " ".join(result)
 
@@ -207,25 +218,27 @@ class GTag:  # aka "Generic Tag"
             else:
                 left_kwargs[k] = v
 
-        # Apply scope class AFTER kwargs so _class="extra" is merged, not overwritten
+        _ctx.stack.append(self)
+        try:
+            self.init(*args, **left_kwargs)
+        finally:
+            _ctx.stack.pop()
+
+        # Scoped style: add the unique class to the element and inject CSS into statics
+        # We do this AFTER init() so subclass can't overwrite it with self._class = ...
         if cls in _scoped_style_cache:
             scope_cls, scoped_css = _scoped_style_cache[cls]
-            existing = self.__attrs.get("class", "")
-            self.__attrs["class"] = f"{scope_cls} {existing}".strip()
+            self.add_class(scope_cls)
+
             # Inject style into class-level statics (only once per class)
             if not getattr(cls, "_scoped_static", False):
+                # We use GTag directly to create the style (GTag is already in scope)
                 style_tag = GTag("style", scoped_css)
                 existing_statics = getattr(cls, "statics", [])
                 if not isinstance(existing_statics, list):
                     existing_statics = []
                 setattr(cls, "statics", list(existing_statics) + [style_tag])
                 setattr(cls, "_scoped_static", True)
-
-        _ctx.stack.append(self)
-        try:
-            self.init(*args, **left_kwargs)
-        finally:
-            _ctx.stack.pop()
 
         if _ctx.stack:
             _ctx.stack[-1].add(self)

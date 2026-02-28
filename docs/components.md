@@ -97,6 +97,47 @@ div = Tag.div(_data_user_id="123")
 - `_style`: Maps to the `style` attribute.
 - `_any_thing`: Maps to `any-thing` in the rendered HTML.
 
+### CSS Class Helpers
+
+Convenience methods for manipulating CSS classes:
+
+```python
+tag.add_class("active")       # add if not present
+tag.remove_class("active")    # remove if present
+tag.toggle_class("hidden")    # add or remove
+tag.has_class("active")       # returns bool
+```
+
+All mutating methods return `self` for chaining and only mark the component dirty if the class list actually changed.
+
+## Scoped Styles
+
+Use the `styles` class attribute to define CSS that is automatically scoped to the component:
+
+```python
+class MyCard(Tag.div):
+    styles = """
+        .title { color: #1e40af; font-weight: bold; }
+        .content { padding: 16px; border: 1px solid #e2e8f0; }
+    """
+    def init(self, title):
+        self <= Tag.h2(title, _class="title")
+        self <= Tag.p("No style leaking!", _class="content")
+```
+
+The framework generates scoped selectors (e.g., `.htag-MyCard .title`) and automatically adds the `htag-MyCard` class to the root element **after** the `init()` call, ensuring it's not accidentally overwritten.
+
+Every rule in `styles` is transformed to match both the element itself and its descendants. For example, `.title` becomes `.htag-MyCard.title, .htag-MyCard .title`. It also handles tag selectors correctly (e.g., `div` becomes `div.htag-MyCard, .htag-MyCard div`).
+
+Supported CSS features:
+- `@media` (inner rules are recursively scoped)
+- `@keyframes` (passed through unchanged to avoid breaking animations)
+- Pseudo-selectors (`:hover`, `::before`, `:nth-child`, etc.)
+- Comma-separated selectors and all combinators (`>`, `+`, `~`, spaces)
+
+> [!NOTE]
+> `styles` is **declarative** (processed once at class level). For dynamic styling during interactions, use `_style`, `_class`, or `toggle_class()`.
+
 ---
 
 ## The Tag Creator
