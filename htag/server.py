@@ -19,7 +19,7 @@ class Event:
     Simulates a DOM Event.
     Attributes are dynamically populated from the client message.
     """
-    def __init__(self, target: GTag, msg: Dict[str, Any]):
+    def __init__(self, target: GTag, msg: Dict[str, Any]) -> None:
         self.target = target
         self.id: str = msg.get("id", "")
         self.name: str = msg.get("event", "")
@@ -277,7 +277,7 @@ class WebServer:
     FastAPI implementation for hosting one or more App sessions.
     Handles the HTTP initial render and the WebSocket communication.
     """
-    def __init__(self, tag_entity: Union[Type['App'], 'App'], on_instance: Optional[Callable[['App'], None]] = None):
+    def __init__(self, tag_entity: Union[Type['App'], 'App'], on_instance: Optional[Callable[['App'], None]] = None) -> None:
         import threading
         self._lock = threading.Lock()
         self.tag_entity = tag_entity # Class or Instance
@@ -310,7 +310,7 @@ class WebServer:
         return self.instances[sid]
 
     def _setup_routes(self) -> None:
-        async def index(request: Request):
+        async def index(request: Request) -> HTMLResponse:
             htag_sid: Optional[str] = request.cookies.get("htag_sid")
             if htag_sid is None:
                 htag_sid = str(uuid.uuid4())
@@ -320,7 +320,7 @@ class WebServer:
             res.set_cookie("htag_sid", htag_sid)
             return res
 
-        async def favicon(request: Request):
+        async def favicon(request: Request) -> Response:
             # Try to find the logo with different common extensions
             for ext in ["png", "jpg", "jpeg", "ico"]:
                 logo_path = os.path.join(os.getcwd(), f"docs/assets/logo.{ext}")
@@ -328,7 +328,7 @@ class WebServer:
                     return FileResponse(logo_path)
             return Response(status_code=204)
 
-        async def websocket_endpoint(websocket: WebSocket):
+        async def websocket_endpoint(websocket: WebSocket) -> None:
             htag_sid: Optional[str] = websocket.cookies.get("htag_sid")
             if htag_sid:
                 instance = self._get_instance(htag_sid)
@@ -336,7 +336,7 @@ class WebServer:
             else:
                 await websocket.close()
 
-        async def stream_endpoint(request: Request):
+        async def stream_endpoint(request: Request) -> Response:
             htag_sid: Optional[str] = request.cookies.get("htag_sid")
             if not htag_sid:
                 return Response(status_code=400, content="No session cookie")
@@ -344,7 +344,7 @@ class WebServer:
             instance = self._get_instance(htag_sid)
             return StreamingResponse(instance._handle_sse(request), media_type="text/event-stream")
 
-        async def event_endpoint(request: Request):
+        async def event_endpoint(request: Request) -> Response:
             htag_sid: Optional[str] = request.cookies.get("htag_sid")
             if not htag_sid:
                 return Response(status_code=400, content="No session cookie")
@@ -377,7 +377,7 @@ class App(GTag):
     """
     statics: List[GTag] = []
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__("body", *args, **kwargs)
         self.exit_on_disconnect: bool = False # Default behavior for Web/API apps
         self.debug: bool = True # Local debug mode default
@@ -435,14 +435,14 @@ class App(GTag):
 
 
     async def _handle_sse(self, request: Request):
-        queue = asyncio.Queue()
+        queue: asyncio.Queue = asyncio.Queue()
         self.sse_queues.add(queue)
         logger.info("New SSE connection (Total clients: %d)", len(self.sse_queues))
         
         # Send initial state
         try:
             updates = {self.id: self.render_initial()}
-            js = []
+            js: List[str] = []
             self.collect_updates(self, {}, js)
             
             payload = json.dumps({
@@ -477,7 +477,7 @@ class App(GTag):
         # Send initial state on connection/reconnection
         try:
             updates = {self.id: self.render_initial()}
-            js = []
+            js: List[str] = []
             self.collect_updates(self, {}, js) # We only want the JS calls here
             
             await websocket.send_text(json.dumps({
@@ -591,8 +591,8 @@ class App(GTag):
                 self.collect_statics(t, result)
 
     async def handle_event(self, msg: Dict[str, Any], ws: Optional[WebSocket]) -> None:
-        tag_id = msg.get("id")
-        event_name = msg.get("event")
+        tag_id: Optional[str] = msg.get("id")
+        event_name: Optional[str] = msg.get("event")
         
         if not isinstance(tag_id, str):
             return
@@ -636,11 +636,11 @@ class App(GTag):
                     await self.broadcast_updates(result=res, callback_id=callback_id)
                 except Exception as e:
                     import traceback
-                    error_trace = traceback.format_exc()
-                    error_msg = f"Error in {event_name} callback: {str(e)}\n{error_trace}"
+                    error_trace: str = traceback.format_exc()
+                    error_msg: str = f"Error in {event_name} callback: {str(e)}\n{error_trace}"
                     logger.error(error_msg)
                     # Use broadcast-like update for error reporting
-                    err_payload = json.dumps({
+                    err_payload: str = json.dumps({
                         "action": "error",
                         "traceback": error_trace if self.debug else "Internal Server Error",
                         "callback_id": callback_id,
@@ -725,13 +725,13 @@ class App(GTag):
             payload = json.dumps(data)
             
             # Send to websocket clients
-            dead_ws: List[WebSocket] = []
+            dead_ws_clients: List[WebSocket] = []
             for client in list(self.websockets):
                 try:
                     await client.send_text(payload)
                 except Exception:
-                    dead_ws.append(client)
-            for client in dead_ws:
+                    dead_ws_clients.append(client)
+            for client in dead_ws_clients:
                 self.websockets.discard(client)
                 
             # Send to SSE clients

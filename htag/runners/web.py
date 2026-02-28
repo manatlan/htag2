@@ -4,7 +4,7 @@ import logging
 import webbrowser
 import uvicorn
 import inspect
-from typing import Union, Type, TYPE_CHECKING
+from typing import Union, Type, TYPE_CHECKING, Any
 from .base import BaseRunner
 
 if TYPE_CHECKING:
@@ -29,7 +29,7 @@ class WebApp(BaseRunner):
             # For simplicity, we assume the user might want to customize it in their App class.
             pass
 
-    def run(self, host: str = "127.0.0.1", port: int = 8000, open_browser: bool = False, reload: bool = False) -> None:
+    def run(self, host: str = "127.0.0.1", port: int = 8000, reload: bool = False, open_browser: bool = False, **kwargs: Any) -> None:
         if reload:
             # Tag the app so the frontend knows to auto-reconnect
             if inspect.isclass(self.app):

@@ -3,7 +3,7 @@ import sys
 import time
 import subprocess
 import threading
-from typing import TYPE_CHECKING, Union, Type, List
+from typing import TYPE_CHECKING, Union, Type, List, Any
 
 if TYPE_CHECKING:
     from ..server import App
@@ -13,11 +13,11 @@ class BaseRunner:
     def __init__(self, app: Union[Type["App"], "App"]):
         self.app = app
 
-    def run(self, host: str = "127.0.0.1", port: int = 8000, reload: bool = False) -> None:
+    def run(self, host: str = "127.0.0.1", port: int = 8000, reload: bool = False, **kwargs: Any) -> None:
         """Must be implemented by subclasses to start the server/UI."""
         raise NotImplementedError()
 
-    def _run_with_reloader(self, *args, **kwargs) -> None:
+    def _run_with_reloader(self, host: str = "127.0.0.1", port: int = 8000) -> None:
         """
         Runs the normal runner in a subprocess and watches for file changes.
         If a .py file changes, it restarts the subprocess.

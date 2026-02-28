@@ -7,7 +7,7 @@ import uvicorn
 import platform
 import inspect
 import os
-from typing import Union, Type, TYPE_CHECKING, Optional, Callable
+from typing import Union, Type, TYPE_CHECKING, Optional, Callable, List, Any
 from .base import BaseRunner
 
 if TYPE_CHECKING:
@@ -27,7 +27,7 @@ class ChromeApp(BaseRunner):
         self.height = height
         self._cleanup_func: Optional[Callable[[], None]] = None
 
-    def run(self, host: str = "127.0.0.1", port: int = 8000, reload: bool = False) -> None:
+    def run(self, host: str = "127.0.0.1", port: int = 8000, reload: bool = False, **kwargs: Any) -> None:
         if reload:
             # Tag the app so the frontend knows to auto-reconnect
             if inspect.isclass(self.app):
@@ -113,7 +113,7 @@ class ChromeApp(BaseRunner):
 
         from ..server import WebServer
         
-        def on_inst(inst):
+        def on_inst(inst: "App") -> None:
             inst.exit_on_disconnect = True
             if self._cleanup_func:
                 setattr(inst, "_browser_cleanup", self._cleanup_func)
