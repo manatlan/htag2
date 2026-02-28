@@ -7,15 +7,32 @@ packages = ["htag"]
 
 [project]
 name = "htag2"
-version = "0.2.0"
-description = "Add your description here"
+version = "0.0.0"
+description = "A modern, state-of-the-art Python GUI framework"
 readme = "README.md"
 requires-python = ">=3.11"
+authors = [
+    { name = "manatlan" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: User Interfaces",
+]
+
 dependencies = [
     "starlette>=0.40.0",
     "uvicorn>=0.40.0",
     "websockets>=16.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/manatlan/htag2"
+Repository = "https://github.com/manatlan/htag2.git"
+"Bug Tracker" = "https://github.com/manatlan/htag2/issues"
 
 [dependency-groups]
 dev = [
