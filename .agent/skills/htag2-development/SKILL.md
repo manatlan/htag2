@@ -119,6 +119,21 @@ class App(Tag.App):
         Tag.style("body { background-color: #f8fafc; }")
     ]
 ```
+### Scoped Styles
+Use the `styles` class attribute for component-scoped CSS. The framework auto-prefixes every CSS rule with `.htag-ClassName` and adds it to the component's root element:
+
+```python
+class MyCard(Tag.div):
+    styles = """
+        .title { color: #1e40af; font-weight: bold; }
+        .content { padding: 16px; border: 1px solid #e2e8f0; }
+    """
+    def init(self, title):
+        self <= Tag.h2(title, _class="title")
+        self <= Tag.p("Styles are scoped!", _class="content")
+```
+
+The generated CSS will be `.htag-MyCard .title { ... }` — no style leaking. The scoped `<style>` is injected once per class, even with multiple instances.
 
 ### Event Control
 Use decorators to control event behavior:

@@ -21,6 +21,44 @@ _ctx = _HtagLocal()
 
 logger = logging.getLogger("htag")
 
+# Cache for scoped CSS: maps class -> (scope_class_name, scoped_css_string)
+_scoped_style_cache: dict[type, tuple[str, str]] = {}
+
+
+def _scope_css(css: str, scope_cls: str) -> str:
+    """Prefix CSS selectors with a scope class, handling @-rules correctly."""
+    result: list[str] = []
+    depth = 0
+    buf = ""
+
+    for ch in css:
+        buf += ch
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                blocks_item = buf.strip()
+                buf = ""
+                brace = blocks_item.index("{")
+                selector = blocks_item[:brace].strip()
+                body = blocks_item[brace:]
+
+                if selector.startswith("@"):
+                    if selector.startswith(("@keyframes", "@font-face")):
+                        result.append(blocks_item)  # Pass through unchanged
+                    else:
+                        # @media, @supports, etc.: recursively scope inner rules
+                        inner = body[body.index("{") + 1 : body.rindex("}")]
+                        result.append(f"{selector} {{{_scope_css(inner, scope_cls)}}}")
+                else:
+                    # Prefix each comma-separated selector
+                    parts = [s.strip() for s in selector.split(",")]
+                    scoped_sel = ", ".join(f".{scope_cls} {p}" for p in parts if p)
+                    result.append(f"{scoped_sel} {body}")
+
+    return " ".join(result)
+
 
 class State:
     def __init__(self, value: Any):
@@ -150,6 +188,14 @@ class GTag:  # aka "Generic Tag"
         self.id = f"{self.tag}-{id(self)}"
         logger.debug("Created Tag: %s (id: %s)", self.tag, self.id)
 
+        # Scoped style: auto-prefix CSS rules with a unique class per component class
+        cls = self.__class__
+        style_css: str | None = getattr(cls, "styles", None)
+        if style_css and cls not in _scoped_style_cache:
+            scope_cls = f"htag-{cls.__name__}"
+            scoped = _scope_css(style_css, scope_cls)
+            _scoped_style_cache[cls] = (scope_cls, scoped)
+
         left_kwargs: dict[str, Any] = {}
         for k, v in kwargs.items():
             if k.startswith("_on"):
@@ -160,6 +206,20 @@ class GTag:  # aka "Generic Tag"
                 self.__attrs[k[1:]] = v
             else:
                 left_kwargs[k] = v
+
+        # Apply scope class AFTER kwargs so _class="extra" is merged, not overwritten
+        if cls in _scoped_style_cache:
+            scope_cls, scoped_css = _scoped_style_cache[cls]
+            existing = self.__attrs.get("class", "")
+            self.__attrs["class"] = f"{scope_cls} {existing}".strip()
+            # Inject style into class-level statics (only once per class)
+            if not getattr(cls, "_scoped_static", False):
+                style_tag = GTag("style", scoped_css)
+                existing_statics = getattr(cls, "statics", [])
+                if not isinstance(existing_statics, list):
+                    existing_statics = []
+                setattr(cls, "statics", list(existing_statics) + [style_tag])
+                setattr(cls, "_scoped_static", True)
 
         _ctx.stack.append(self)
         try:

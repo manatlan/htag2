@@ -281,3 +281,280 @@ def test_gtag_reparenting_and_duplicates():
     p2.add(c) # Should trigger removal from p2.childs before re-adding
     assert len(p2.childs) == 1
     assert p2.childs[0] == c
+
+def test_toggle_class():
+    t = GTag("div", _class="foo bar")
+    
+    # Toggle off existing class
+    result = t.toggle_class("foo")
+    assert result is t  # Returns self (chainable)
+    assert t._class == "bar"
+    
+    # Toggle on missing class
+    t.toggle_class("baz")
+    assert t._class == "bar baz"
+    
+    # Toggle off again
+    t.toggle_class("baz")
+    assert t._class == "bar"
+
+def test_has_class():
+    t = GTag("div", _class="foo bar")
+    assert t.has_class("foo") is True
+    assert t.has_class("bar") is True
+    assert t.has_class("baz") is False
+    
+    # Empty class
+    t2 = GTag("div")
+    assert t2.has_class("anything") is False
+
+def test_state_notify():
+    """State.notify() should mark observers dirty even without value change."""
+    items = State([1, 2, 3])
+    t = GTag("div")
+    t <= (lambda: f"Count: {len(items.value)}")
+    
+    # Render to register observers
+    str(t)
+    assert t in items._observers
+    t._GTag__dirty = False
+    
+    # In-place mutation + notify
+    items.value.append(4)
+    items.notify()
+    assert t._GTag__dirty is True
+
+def test_scoped_style_basic():
+    """Basic scoped styles: class is added, CSS is prefixed."""
+    class BasicScoped(GTag):
+        tag = "div"
+        styles = """
+            .title { color: red; }
+            .subtitle { font-size: 14px; }
+        """
+
+    w1 = BasicScoped()
+    w2 = BasicScoped()
+
+    # Both instances get the scope class
+    assert w1.has_class("htag-BasicScoped")
+    assert w2.has_class("htag-BasicScoped")
+
+    # Statics contains scoped CSS (injected once)
+    statics = getattr(BasicScoped, "statics", [])
+    assert len(statics) == 1
+    scoped_css = str(statics[0])
+    assert ".htag-BasicScoped .title" in scoped_css
+    assert ".htag-BasicScoped .subtitle" in scoped_css
+
+def test_scoped_style_preserves_class():
+    """_class from kwargs is merged with the scope class, not overwritten."""
+    class PreserveClass(GTag):
+        tag = "div"
+        styles = ".box { margin: 0; }"
+
+    w = PreserveClass(_class="extra custom")
+    assert w.has_class("htag-PreserveClass")
+    assert w.has_class("extra")
+    assert w.has_class("custom")
+
+def test_scoped_style_no_interference():
+    """Components without `styles` don't get a scope class."""
+    class PlainWidget(GTag):
+        tag = "span"
+
+    pw = PlainWidget()
+    assert not pw.has_class("htag-PlainWidget")
+
+def test_scoped_style_multi_selectors():
+    """Comma-separated selectors each get the scope prefix."""
+    class MultiSel(GTag):
+        tag = "div"
+        styles = ".a, .b { color: red; }"
+
+    w = MultiSel()
+    scoped_css = str(getattr(MultiSel, "statics")[-1])
+    assert ".htag-MultiSel .a" in scoped_css
+    assert ".htag-MultiSel .b" in scoped_css
+
+def test_scoped_style_pseudo_selectors():
+    """Pseudo-classes and pseudo-elements are preserved."""
+    class PseudoSel(GTag):
+        tag = "div"
+        styles = """
+            .btn:hover { color: blue; }
+            .icon::before { content: ""; }
+            .link:not(.disabled) { cursor: pointer; }
+        """
+
+    w = PseudoSel()
+    scoped_css = str(getattr(PseudoSel, "statics")[-1])
+    assert ".htag-PseudoSel .btn:hover" in scoped_css
+    assert ".htag-PseudoSel .icon::before" in scoped_css
+    assert ".htag-PseudoSel .link:not(.disabled)" in scoped_css
+
+def test_scoped_style_media_query():
+    """@media rules are preserved, inner selectors are scoped."""
+    class MediaQ(GTag):
+        tag = "div"
+        styles = """
+            .title { color: red; }
+            @media (max-width: 768px) {
+                .title { font-size: 14px; }
+                .subtitle, .note { display: none; }
+            }
+        """
+
+    w = MediaQ()
+    scoped_css = str(getattr(MediaQ, "statics")[-1])
+    # Outer rule scoped
+    assert ".htag-MediaQ .title" in scoped_css
+    # @media preserved
+    assert "@media (max-width: 768px)" in scoped_css
+    # Inner rules inside @media also scoped
+    assert ".htag-MediaQ .subtitle" in scoped_css
+    assert ".htag-MediaQ .note" in scoped_css
+
+def test_scoped_style_keyframes_passthrough():
+    """@keyframes are passed through without scoping internal selectors."""
+    class WithKeyframes(GTag):
+        tag = "div"
+        styles = """
+            .spinner { animation: spin 1s linear infinite; }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        """
+
+    w = WithKeyframes()
+    scoped_css = str(getattr(WithKeyframes, "statics")[-1])
+    # Normal rule scoped
+    assert ".htag-WithKeyframes .spinner" in scoped_css
+    # @keyframes preserved unchanged
+    assert "@keyframes spin" in scoped_css
+    assert "0%" in scoped_css
+    assert "100%" in scoped_css
+    # 0% and 100% should NOT be prefixed
+    assert ".htag-WithKeyframes 0%" not in scoped_css
+    assert ".htag-WithKeyframes 100%" not in scoped_css
+
+def test_scoped_style_nested_selectors():
+    """Descendant and child combinators are handled correctly."""
+    class NestedSel(GTag):
+        tag = "div"
+        styles = """
+            .card .title { color: red; }
+            .card > .body { padding: 10px; }
+            .list .item .name { font-weight: bold; }
+        """
+
+    w = NestedSel()
+    scoped_css = str(getattr(NestedSel, "statics")[-1])
+    assert ".htag-NestedSel .card .title" in scoped_css
+    assert ".htag-NestedSel .card > .body" in scoped_css
+    assert ".htag-NestedSel .list .item .name" in scoped_css
+
+def test_scoped_style_nested_components():
+    """Nested components each get their own independent scope."""
+    class Outer(GTag):
+        tag = "div"
+        styles = ".header { color: blue; }"
+
+    class Inner(GTag):
+        tag = "span"
+        styles = ".header { color: red; }"
+
+    outer = Outer()
+    inner = Inner()
+    outer.add(inner)
+
+    # Each has its own scope class
+    assert outer.has_class("htag-Outer")
+    assert not outer.has_class("htag-Inner")
+    assert inner.has_class("htag-Inner")
+    assert not inner.has_class("htag-Outer")
+
+    # Statics are independent
+    outer_css = str(getattr(Outer, "statics")[-1])
+    inner_css = str(getattr(Inner, "statics")[-1])
+    assert ".htag-Outer .header" in outer_css
+    assert ".htag-Inner .header" in inner_css
+    assert ".htag-Inner" not in outer_css
+    assert ".htag-Outer" not in inner_css
+
+def test_scoped_style_dynamic_add():
+    """Dynamically created and added scoped components work correctly."""
+    class DynComp(GTag):
+        tag = "div"
+        styles = ".label { font-size: 12px; }"
+
+    parent = GTag("section")
+
+    # Dynamically create and add multiple instances
+    for i in range(5):
+        child = DynComp(_class=f"item-{i}")
+        parent.add(child)
+
+    assert len(parent.childs) == 5
+    for child in parent.childs:
+        assert child.has_class("htag-DynComp")
+
+    # Statics injected only once regardless of instance count
+    assert len(getattr(DynComp, "statics")) == 1
+
+def test_scoped_style_with_existing_statics():
+    """Scoped styles coexist with class-level statics."""
+    class WithStatics(GTag):
+        tag = "div"
+        statics = [GTag("link", _rel="stylesheet", _href="app.css")]
+        styles = ".content { padding: 8px; }"
+
+    w = WithStatics()
+    statics = getattr(WithStatics, "statics")
+    # Original static + scoped style
+    assert len(statics) == 2
+    assert "app.css" in str(statics[0])
+    assert ".htag-WithStatics .content" in str(statics[1])
+
+def test_scoped_style_complex_css():
+    """Full integration with complex real-world CSS."""
+    class ComplexWidget(GTag):
+        tag = "div"
+        styles = """
+            .card { background: white; border-radius: 8px; }
+            .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+            .header, .footer { padding: 16px; border-bottom: 1px solid #eee; }
+            .body > .row { display: flex; gap: 8px; }
+            .body > .row:nth-child(odd) { background: #f9f9f9; }
+            @media (max-width: 640px) {
+                .body > .row { flex-direction: column; }
+                .header, .footer { padding: 8px; }
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            .card { animation: fadeIn 0.3s ease-in; }
+        """
+
+    w = ComplexWidget()
+    css = str(getattr(ComplexWidget, "statics")[-1])
+
+    # Normal selectors scoped
+    assert ".htag-ComplexWidget .card" in css
+    assert ".htag-ComplexWidget .card:hover" in css
+    assert ".htag-ComplexWidget .header" in css
+    assert ".htag-ComplexWidget .footer" in css
+    assert ".htag-ComplexWidget .body > .row" in css
+    assert ".htag-ComplexWidget .body > .row:nth-child(odd)" in css
+
+    # @media preserved, inner rules scoped
+    assert "@media (max-width: 640px)" in css
+    # Inner should be scoped too
+    assert ".htag-ComplexWidget .body > .row" in css
+
+    # @keyframes preserved unchanged
+    assert "@keyframes fadeIn" in css
+    assert ".htag-ComplexWidget from" not in css
+    assert ".htag-ComplexWidget to" not in css
