@@ -21,7 +21,7 @@ from starlette.responses import (
 )
 from .core import GTag
 
-logger = logging.getLogger("htag2")
+logger = logging.getLogger("htag")
 
 
 class Event:

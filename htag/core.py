@@ -19,7 +19,7 @@ class _HtagLocal(threading.local):
 
 _ctx = _HtagLocal()
 
-logger = logging.getLogger("htag2")
+logger = logging.getLogger("htag")
 
 
 class State:

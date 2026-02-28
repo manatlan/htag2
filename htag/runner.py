@@ -15,7 +15,7 @@ import uvicorn
 if TYPE_CHECKING:
     from .server import App
 
-logger = logging.getLogger("htag2")
+logger = logging.getLogger("htag")
 
 
 class ChromeApp:
@@ -64,7 +64,7 @@ class ChromeApp:
                 import shutil
                 import atexit
 
-                tmp_dir = tempfile.mkdtemp(prefix="htag2_")
+                tmp_dir = tempfile.mkdtemp(prefix="htag_")
 
                 def cleanup() -> None:
                     try:
@@ -246,7 +246,8 @@ class ChromeApp:
                     for path, mtime in current_mtimes.items():
                         if path not in last_mtimes or mtime > last_mtimes[path]:
                             logger.warning(
-                                f"** Code changed ({path}), restarting server... **"
+                                "** Code changed (%s), restarting server... **",
+                                path,
                             )
                             changed = True
                             break

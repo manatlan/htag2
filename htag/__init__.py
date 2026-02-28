@@ -3,6 +3,8 @@ from .server import WebApp
 from .runner import ChromeApp
 import logging
 
-logger = logging.getLogger("htag2")
+# Library best practice: attach NullHandler so apps that don't configure
+# logging won't see "No handler found" warnings.
+logging.getLogger("htag").addHandler(logging.NullHandler())
 
 __all__ = ["Tag", "ChromeApp", "prevent", "stop", "State", "WebApp"]
