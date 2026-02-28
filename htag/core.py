@@ -322,23 +322,29 @@ class GTag:  # aka "Generic Tag"
             self.__dirty = True
         return self
 
-    def add_class(self, name: str) -> "GTag":
+    def _update_classes(self, fn: Callable[[list[str]], None]) -> "GTag":
         with self.__lock:
             classes = self.__attrs.get("class", "").split()
-            if name not in classes:
-                classes.append(name)
+            before = list(classes)
+            fn(classes)
+            if classes != before:
                 self.__attrs["class"] = " ".join(classes)
                 self.__dirty = True
         return self
 
+    def add_class(self, name: str) -> "GTag":
+        return self._update_classes(lambda c: c.append(name) if name not in c else None)
+
     def remove_class(self, name: str) -> "GTag":
-        with self.__lock:
-            classes = self.__attrs.get("class", "").split()
-            if name in classes:
-                classes.remove(name)
-                self.__attrs["class"] = " ".join(classes)
-                self.__dirty = True
-        return self
+        return self._update_classes(lambda c: c.remove(name) if name in c else None)
+
+    def toggle_class(self, name: str) -> "GTag":
+        """Add the class if absent, remove it if present."""
+        return self._update_classes(lambda c: c.remove(name) if name in c else c.append(name))
+
+    def has_class(self, name: str) -> bool:
+        """Check whether the tag has the given CSS class."""
+        return name in self.__attrs.get("class", "").split()
 
     def call_js(self, script: str) -> "GTag":
         self.__js_calls.append(script)

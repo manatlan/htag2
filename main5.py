@@ -310,12 +310,8 @@ class Accordion(Tag.div):
 
     def toggle(self, event):
         self.is_open = not self.is_open
-        if self.is_open:
-             self.body_wrapper._class = ""
-             self.arrow_wrapper._class = "transition-transform duration-200 rotate-180"
-        else:
-             self.body_wrapper._class = "hidden"
-             self.arrow_wrapper._class = "transition-transform duration-200"
+        self.body_wrapper.toggle_class("hidden")
+        self.arrow_wrapper.toggle_class("rotate-180")
 
 
 class MessageBox(Tag.div):

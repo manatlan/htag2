@@ -85,6 +85,12 @@ htag2 supports both traditional "dirty-marking" and modern reactive `State`.
   - Incorrect: `class="btn"`, `src="image.png"`
 - **Events**: Properties starting with `_on` are mapped to Python callbacks.
 
+**CSS Class Helpers**:
+- `tag.add_class("active")` — adds a class if not already present
+- `tag.remove_class("active")` — removes a class if present
+- `tag.toggle_class("hidden")` — adds or removes a class
+- `tag.has_class("active")` — returns `bool`
+
 ### 5. Forms & Inputs
 htag2 automatically binds input events to Python.
 - For text/number inputs, the current value is accessed safely via event handlers: `val = event.value`
