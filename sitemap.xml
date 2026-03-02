@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://manatlan.github.io/htag2/</loc>
+         <lastmod>2026-03-02</lastmod>
+    </url>
+    <url>
+         <loc>https://manatlan.github.io/htag2/advanced/</loc>
+         <lastmod>2026-03-02</lastmod>
+    </url>
+    <url>
+         <loc>https://manatlan.github.io/htag2/components/</loc>
+         <lastmod>2026-03-02</lastmod>
+    </url>
+    <url>
+         <loc>https://manatlan.github.io/htag2/deployment/</loc>
+         <lastmod>2026-03-02</lastmod>
+    </url>
+    <url>
+         <loc>https://manatlan.github.io/htag2/events/</loc>
+         <lastmod>2026-03-02</lastmod>
+    </url>
+    <url>
+         <loc>https://manatlan.github.io/htag2/reactivity/</loc>
+         <lastmod>2026-03-02</lastmod>
+    </url>
+    <url>
+         <loc>https://manatlan.github.io/htag2/runners/</loc>
+         <lastmod>2026-03-02</lastmod>
+    </url>
+</urlset>
