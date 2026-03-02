@@ -1,0 +1,11 @@
+from htag import Tag
+
+class App(Tag.App):
+    def init(self):
+        self += Tag.h1("Hello tata!", _style="color: gree;")
+        self += Tag.button("Click me", _onclick=self.do_click)
+        self.msg = Tag.div()
+        self += self.msg
+        
+    def do_click(self, o):
+        self.msg += "tata Clicked! "
